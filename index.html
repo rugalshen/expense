@@ -167,6 +167,13 @@ header p  { font-size: 11px; opacity: .72; margin-top: 2px; }
   font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
 }
 .btn-all:active { background: #1b5e20; }
+.btn-dl {
+  padding: 5px 13px; border: 1.5px solid #b45309;
+  background: #d97706; color: #fff;
+  border-radius: 7px; font-family: inherit;
+  font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
+}
+.btn-dl:active { background: #92400e; }
 
 .summary-row {
   padding: 9px 16px; background: var(--primary-light);
@@ -243,6 +250,7 @@ header p  { font-size: 11px; opacity: .72; margin-top: 2px; }
 }
 .toast.show { transform: translateX(-50%) translateY(0); }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -318,6 +326,7 @@ header p  { font-size: 11px; opacity: .72; margin-top: 2px; }
       <button class="btn-col" onclick="copyCol('other')">其他</button>
       <button class="btn-col" onclick="copyCol('note')">备注</button>
       <button class="btn-all" onclick="copyAll()">📋 复制全表</button>
+      <button class="btn-dl" onclick="downloadExcel()">⬇️ 下载Excel</button>
     </div>
   </div>
 
@@ -584,6 +593,41 @@ function showToast(msg) {
 }
 
 renderRecords();
+
+function downloadExcel() {
+  const fr = filteredRecords();
+  if (!fr.length) { showToast('没有可导出的记录'); return; }
+
+  const headers = ['日期','出差行程','公里数','交通','住宿','配件','招待','路桥费','其他','备注'];
+  const rows = fr.map(r => [
+    r.date, r.route, r.km||'',
+    r.traffic||'', r.hotel||'', r.parts||'',
+    r.entertain||'', r.toll||'', r.other||'',
+    r.note||''
+  ]);
+
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+
+  // Column widths
+  ws['!cols'] = [
+    {wch:12},{wch:30},{wch:8},{wch:10},{wch:10},
+    {wch:10},{wch:10},{wch:10},{wch:10},{wch:20}
+  ];
+
+  // Style header row bold
+  headers.forEach((_, i) => {
+    const cell = ws[XLSX.utils.encode_cell({r:0, c:i})];
+    if (cell) cell.s = { font: { bold: true } };
+  });
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '报销记录');
+
+  const month = filterMonth === 'all' ? '全部' : filterMonth;
+  XLSX.writeFile(wb, `报销记录_${month}.xlsx`);
+  showToast('✅ Excel已下载');
+}
+
 </script>
 </body>
 </html>
