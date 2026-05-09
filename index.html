@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>费用报销记账</title>
+<style>
+:root {
+  --bg: #f2f4f7;
+  --card: #ffffff;
+  --primary: #1a56a0;
+  --primary-light: #e8f0fb;
+  --accent: #2e7d32;
+  --text: #1c1c1e;
+  --muted: #8e8e93;
+  --border: #e0e0e0;
+  --red: #c62828;
+  --red-light: #ffebee;
+  --shadow: 0 1px 8px rgba(0,0,0,0.10);
+  --radius: 14px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding-bottom: 48px;
+}
+
+header {
+  background: var(--primary);
+  color: #fff;
+  padding: 16px 18px 12px;
+  position: sticky; top: 0; z-index: 200;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+}
+header h1 { font-size: 17px; font-weight: 700; letter-spacing: .5px; }
+header p  { font-size: 11px; opacity: .72; margin-top: 2px; }
+
+.tabs {
+  display: flex;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 56px; z-index: 190;
+}
+.tab {
+  flex: 1; padding: 12px 0; text-align: center;
+  font-size: 13px; font-weight: 600; color: var(--muted);
+  cursor: pointer; border-bottom: 2.5px solid transparent;
+  transition: color .15s, border-color .15s;
+}
+.tab.active { color: var(--primary); border-color: var(--primary); }
+
+.panel { display: none; padding: 14px; }
+.panel.active { display: block; }
+
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.card-title {
+  font-size: 12px; font-weight: 700; color: var(--primary);
+  text-transform: uppercase; letter-spacing: .5px;
+  padding: 14px 16px 0;
+}
+
+/* ── Form fields ── */
+.form-body { padding: 12px 16px 4px; display: flex; flex-direction: column; gap: 10px; }
+
+.field label {
+  display: block; font-size: 11px; font-weight: 700;
+  color: var(--muted); text-transform: uppercase;
+  letter-spacing: .4px; margin-bottom: 5px;
+}
+.field input, .field textarea {
+  width: 100%; padding: 10px 12px;
+  border: 1.5px solid var(--border); border-radius: 9px;
+  font-family: inherit; font-size: 15px;
+  background: #fafafa; color: var(--text);
+  outline: none; transition: border-color .15s, background .15s;
+  -webkit-appearance: none;
+}
+.field input:focus, .field textarea:focus {
+  border-color: var(--primary); background: #fff;
+}
+.field textarea { resize: none; height: 62px; font-size: 14px; }
+.field input[type=number] { -moz-appearance: textfield; }
+.field input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+.amounts-label {
+  font-size: 11px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .4px;
+  padding: 4px 16px 0;
+}
+.amounts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 8px 16px 0;
+}
+.amt-field label {
+  font-size: 11px; font-weight: 600; color: var(--muted);
+  display: block; margin-bottom: 4px;
+}
+.amt-field input {
+  width: 100%; padding: 9px 10px;
+  border: 1.5px solid var(--border); border-radius: 8px;
+  font-family: inherit; font-size: 15px;
+  background: #fafafa; color: var(--text); outline: none;
+  -webkit-appearance: none; -moz-appearance: textfield;
+  transition: border-color .15s, background .15s;
+}
+.amt-field input:focus { border-color: var(--primary); background: #fff; }
+.amt-field input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+.btn-submit {
+  display: block; width: calc(100% - 32px); margin: 14px 16px 16px;
+  padding: 14px; background: var(--primary); color: #fff;
+  border: none; border-radius: 11px; font-family: inherit;
+  font-size: 15px; font-weight: 700; cursor: pointer;
+  transition: background .15s, transform .1s; letter-spacing: .3px;
+}
+.btn-submit:active { background: #134080; transform: scale(.98); }
+
+/* ── Records ── */
+.toolbar {
+  display: flex; gap: 8px; align-items: center;
+  padding: 10px 14px; background: var(--card);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+}
+.toolbar-label { font-size: 11px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.btn-month {
+  padding: 5px 13px; border: 1.5px solid var(--border);
+  background: #fff; color: var(--text);
+  border-radius: 20px; font-family: inherit;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  white-space: nowrap; transition: all .15s;
+}
+.btn-month.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+.copy-bar {
+  display: flex; flex-wrap: wrap; gap: 7px; align-items: center;
+  padding: 10px 14px; background: #f7f8fa;
+  border-bottom: 1px solid var(--border);
+}
+.copy-bar-label { font-size: 11px; font-weight: 700; color: var(--muted); margin-right: 2px; white-space: nowrap; }
+.btn-col {
+  padding: 5px 11px; border: 1.5px solid var(--primary);
+  background: #fff; color: var(--primary);
+  border-radius: 7px; font-family: inherit;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  white-space: nowrap; transition: all .15s;
+}
+.btn-col:active { background: var(--primary); color: #fff; }
+.btn-all {
+  padding: 5px 13px; border: 1.5px solid var(--accent);
+  background: var(--accent); color: #fff;
+  border-radius: 7px; font-family: inherit;
+  font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
+}
+.btn-all:active { background: #1b5e20; }
+
+.summary-row {
+  padding: 9px 16px; background: var(--primary-light);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px; color: var(--primary); font-weight: 600;
+}
+
+.record-list { padding: 10px 14px; display: flex; flex-direction: column; gap: 10px; }
+.rec-card {
+  background: var(--card); border-radius: 12px;
+  box-shadow: var(--shadow); overflow: hidden;
+}
+.rec-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px 8px; border-bottom: 1px solid var(--border);
+}
+.rec-date { font-size: 15px; font-weight: 700; color: var(--primary); }
+.rec-total { font-size: 15px; font-weight: 700; color: var(--accent); }
+.rec-body { padding: 10px 14px; }
+.rec-route { font-size: 13px; color: #444; margin-bottom: 6px; }
+.rec-km { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.rec-amts { font-size: 12px; color: #555; line-height: 1.8; }
+.rec-note { font-size: 12px; color: var(--muted); margin-top: 5px; }
+.rec-actions {
+  padding: 8px 14px; border-top: 1px solid var(--border);
+  display: flex; gap: 8px;
+}
+.btn-edit {
+  padding: 5px 14px; border-radius: 7px;
+  font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+  border: 1.5px solid var(--border); background: #f5f5f5; color: var(--text);
+}
+.btn-del {
+  padding: 5px 14px; border-radius: 7px;
+  font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+  border: 1.5px solid var(--red); color: var(--red); background: var(--red-light);
+}
+
+.empty { text-align: center; padding: 50px 20px; color: var(--muted); font-size: 14px; }
+.empty-icon { font-size: 40px; margin-bottom: 10px; }
+
+/* ── Modal ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.45); z-index: 500;
+  align-items: flex-end;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--card); border-radius: 20px 20px 0 0;
+  width: 100%; max-height: 92vh; overflow-y: auto;
+  padding-bottom: env(safe-area-inset-bottom, 20px);
+  animation: slideUp .25s ease;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px 12px; border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: var(--card); z-index: 10;
+}
+.modal-title { font-size: 15px; font-weight: 700; }
+.btn-close { background: none; border: none; font-size: 22px; color: var(--muted); cursor: pointer; }
+
+/* ── Toast ── */
+.toast {
+  position: fixed; bottom: 28px; left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: #222; color: #fff;
+  padding: 10px 22px; border-radius: 24px;
+  font-size: 13px; font-weight: 600; z-index: 999;
+  transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+  white-space: nowrap; pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,.25);
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📋 费用报销记账</h1>
+  <p>随手记 · 月底按列复制到报销表</p>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('add')">➕ 记一条</div>
+  <div class="tab" onclick="switchTab('records')">📄 记录 / 导出</div>
+</div>
+
+<!-- ── ADD ── -->
+<div class="panel active" id="panel-add">
+  <div class="card">
+    <div class="card-title">基本信息</div>
+    <div class="form-body">
+      <div class="row2">
+        <div class="field">
+          <label>日期</label>
+          <input type="date" id="f-date">
+        </div>
+        <div class="field">
+          <label>公里数</label>
+          <input type="text" id="f-km" placeholder="0">
+        </div>
+      </div>
+      <div class="field">
+        <label>出差行程</label>
+        <textarea id="f-route" placeholder="如：家-浦东机场-客户-酒店"></textarea>
+      </div>
+    </div>
+
+    <div class="amounts-label">费用明细（元，不填留空）</div>
+    <div class="amounts-grid">
+      <div class="amt-field"><label>交通</label><input type="text" id="f-traffic" placeholder="0 或 =10+5"></div>
+      <div class="amt-field"><label>住宿</label><input type="text" id="f-hotel" placeholder="0 或 =10+5"></div>
+      <div class="amt-field"><label>配件</label><input type="text" id="f-parts" placeholder="0 或 =10+5"></div>
+      <div class="amt-field"><label>招待</label><input type="text" id="f-entertain" placeholder="0 或 =10+5"></div>
+      <div class="amt-field"><label>路桥费</label><input type="text" id="f-toll" placeholder="0 或 =10+5"></div>
+      <div class="amt-field"><label>其他</label><input type="text" id="f-other" placeholder="0 或 =10+5"></div>
+    </div>
+
+    <div class="form-body" style="padding-top:10px">
+      <div class="field">
+        <label>备注</label>
+        <textarea id="f-note" placeholder="如：沪FJY707自己车，停车12元"></textarea>
+      </div>
+    </div>
+
+    <button class="btn-submit" onclick="submitRecord()">✓ 保存这条记录</button>
+  </div>
+</div>
+
+<!-- ── RECORDS ── -->
+<div class="panel" id="panel-records">
+  <div class="card" style="margin-bottom:14px">
+    <div class="toolbar" id="month-toolbar">
+      <span class="toolbar-label">月份：</span>
+    </div>
+    <div class="summary-row" id="summary-row">暂无数据</div>
+    <div class="copy-bar">
+      <span class="copy-bar-label">复制列：</span>
+      <button class="btn-col" onclick="copyCol('date')">日期</button>
+      <button class="btn-col" onclick="copyCol('route')">出差行程</button>
+      <button class="btn-col" onclick="copyCol('km')">公里数</button>
+      <button class="btn-col" onclick="copyCol('traffic')">交通</button>
+      <button class="btn-col" onclick="copyCol('hotel')">住宿</button>
+      <button class="btn-col" onclick="copyCol('parts')">配件</button>
+      <button class="btn-col" onclick="copyCol('entertain')">招待</button>
+      <button class="btn-col" onclick="copyCol('toll')">路桥费</button>
+      <button class="btn-col" onclick="copyCol('other')">其他</button>
+      <button class="btn-col" onclick="copyCol('note')">备注</button>
+      <button class="btn-all" onclick="copyAll()">📋 复制全表</button>
+    </div>
+  </div>
+
+  <div class="record-list" id="record-list"></div>
+  <div class="empty" id="empty-state">
+    <div class="empty-icon">🧾</div>
+    还没有记录，去「记一条」添加吧
+  </div>
+</div>
+
+<!-- ── EDIT MODAL ── -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">编辑记录</span>
+      <button class="btn-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-body" style="padding:14px 16px 4px">
+      <div class="row2">
+        <div class="field">
+          <label>日期</label>
+          <input type="date" id="e-date">
+        </div>
+        <div class="field">
+          <label>公里数</label>
+          <input type="text" id="e-km" placeholder="0">
+        </div>
+      </div>
+      <div class="field">
+        <label>出差行程</label>
+        <textarea id="e-route"></textarea>
+      </div>
+    </div>
+    <div class="amounts-label" style="padding: 10px 16px 0">费用明细（元）</div>
+    <div class="amounts-grid">
+      <div class="amt-field"><label>交通</label><input type="text" id="e-traffic" placeholder="0 或 =10+5"></div>
+      <div class="amt-field"><label>住宿</label><input type="text" id="e-hotel" placeholder="0 或 =10+5"></div>
+      <div class="amt-field"><label>配件</label><input type="text" id="e-parts" placeholder="0 或 =10+5"></div>
+      <div class="amt-field"><label>招待</label><input type="text" id="e-entertain" placeholder="0 或 =10+5"></div>
+      <div class="amt-field"><label>路桥费</label><input type="text" id="e-toll" placeholder="0 或 =10+5"></div>
+      <div class="amt-field"><label>其他</label><input type="text" id="e-other" placeholder="0 或 =10+5"></div>
+    </div>
+    <div class="form-body" style="padding-top:10px">
+      <div class="field">
+        <label>备注</label>
+        <textarea id="e-note"></textarea>
+      </div>
+    </div>
+    <button class="btn-submit" onclick="saveEdit()">✓ 保存修改</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const KEY = 'kewei_expense_v3';
+let records = [];
+try { records = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) {}
+let filterMonth = 'all';
+let editId = null;
+
+const $ = id => document.getElementById(id);
+const fv = id => $('f-' + id).value.trim();
+const ev = id => $('e-' + id).value.trim();
+const fnum = id => $('f-' + id).value.trim();
+const eNum = id => $('e-' + id).value.trim();
+const pad = n => String(n).padStart(2, '0');
+const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+const toNum = v => { if (!v) return 0; const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+const totalOf = r => toNum(r.traffic)+toNum(r.hotel)+toNum(r.parts)+toNum(r.entertain)+toNum(r.toll)+toNum(r.other);
+const dispVal = v => v || '';  // display raw value (formula or number)
+const fmt = v => v || '';
+
+$('f-date').value = todayStr();
+
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(records)); } catch(e) {}
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t, i) =>
+    t.classList.toggle('active', (i===0&&tab==='add')||(i===1&&tab==='records')));
+  document.querySelectorAll('.panel').forEach((p, i) =>
+    p.classList.toggle('active', (i===0&&tab==='add')||(i===1&&tab==='records')));
+  if (tab === 'records') renderRecords();
+}
+
+function submitRecord() {
+  const date = $('f-date').value;
+  if (!date) { showToast('⚠️ 请填写日期'); return; }
+  const rec = {
+    id: Date.now(), date,
+    route: fv('route'),
+    km: parseFloat($('f-km').value) || 0,
+    traffic: fnum('traffic'), hotel: fnum('hotel'),
+    parts: fnum('parts'), entertain: fnum('entertain'),
+    toll: fnum('toll'), other: fnum('other'),
+    note: fv('note')
+  };
+  records.push(rec);
+  records.sort((a, b) => a.date.localeCompare(b.date));
+  save();
+
+  ['route','km','traffic','hotel','parts','entertain','toll','other','note'].forEach(k => $('f-'+k).value = '');
+  $('f-date').value = todayStr();
+  showToast('✅ 记录已保存');
+}
+
+function filteredRecords() {
+  return filterMonth === 'all' ? records : records.filter(r => r.date && r.date.startsWith(filterMonth));
+}
+
+function renderRecords() {
+  const fr = filteredRecords();
+
+  // month buttons
+  const months = [...new Set(records.map(r => r.date ? r.date.slice(0,7) : null).filter(Boolean))].sort().reverse();
+  const tb = $('month-toolbar');
+  tb.innerHTML = '<span class="toolbar-label">月份：</span>';
+  const allBtn = document.createElement('button');
+  allBtn.className = 'btn-month' + (filterMonth==='all' ? ' active' : '');
+  allBtn.textContent = '全部';
+  allBtn.onclick = () => { filterMonth = 'all'; renderRecords(); };
+  tb.appendChild(allBtn);
+  months.forEach(m => {
+    const b = document.createElement('button');
+    b.className = 'btn-month' + (filterMonth===m ? ' active' : '');
+    b.textContent = m.replace('-', '年') + '月';
+    b.onclick = () => { filterMonth = m; renderRecords(); };
+    tb.appendChild(b);
+  });
+
+  // summary
+  const sr = $('summary-row');
+  if (!fr.length) { sr.textContent = '暂无数据'; }
+  else {
+    const keys = ['traffic','hotel','parts','entertain','toll','other'];
+    const tots = {};
+    keys.forEach(k => tots[k] = 0);
+    fr.forEach(r => keys.forEach(k => tots[k] += toNum(r[k])));
+    const grand = Object.values(tots).reduce((a,b) => a+b, 0);
+    const labels = {traffic:'交通',hotel:'住宿',parts:'配件',entertain:'招待',toll:'路桥',other:'其他'};
+    const parts = keys.filter(k=>tots[k]>0).map(k=>`${labels[k]} ${tots[k].toFixed(0)}`).join(' · ');
+    sr.innerHTML = `共 <b>${fr.length}</b> 条 &nbsp;|&nbsp; 合计 <b>¥${grand.toFixed(2)}</b>（含公式的格子不计入合计）${parts ? ' &nbsp;|&nbsp; ' + parts : ''}`;
+  }
+
+  const list = $('record-list');
+  const empty = $('empty-state');
+  if (!fr.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  const amtLabels = {traffic:'交通',hotel:'住宿',parts:'配件',entertain:'招待',toll:'路桥费',other:'其他'};
+  list.innerHTML = fr.map(r => {
+    const t = totalOf(r);
+    const amtParts = Object.keys(amtLabels)
+      .filter(k => r[k])
+      .map(k => `${amtLabels[k]} <b>${r[k]}</b>`)
+      .join(' &nbsp;·&nbsp; ');
+    return `<div class="rec-card">
+      <div class="rec-header">
+        <div class="rec-date">${r.date}</div>
+        <div class="rec-total">${t ? '¥' + t.toFixed(2) : ''}</div>
+      </div>
+      <div class="rec-body">
+        ${r.route ? `<div class="rec-route">${r.route}</div>` : ''}
+        ${r.km ? `<div class="rec-km">公里数：${r.km} km</div>` : ''}
+        <div class="rec-amts">${amtParts || '<span style="color:#bbb">无费用明细</span>'}</div>
+        ${r.note ? `<div class="rec-note">备注：${r.note}</div>` : ''}
+      </div>
+      <div class="rec-actions">
+        <button class="btn-edit" onclick="openEdit(${r.id})">✏️ 编辑</button>
+        <button class="btn-del" onclick="delRecord(${r.id})">删除</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+const AMT_COLS = ['traffic','hotel','parts','entertain','toll','other'];
+
+function copyCol(col) {
+  const fr = filteredRecords();
+  if (!fr.length) { showToast('没有可复制的记录'); return; }
+  const lines = fr.map(r => {
+    if (AMT_COLS.includes(col)) return r[col] ? r[col].toFixed(2) : '';
+    if (col === 'km') return r.km ? String(r.km) : '';
+    return r[col] || '';
+  });
+  doCopy(lines.join('\n'));
+  showToast('✅ 已复制，粘贴到Excel对应列');
+}
+
+function copyAll() {
+  const fr = filteredRecords();
+  if (!fr.length) { showToast('没有可复制的记录'); return; }
+  const header = '日期\t出差行程\t公里数\t交通\t住宿\t配件\t招待\t路桥费\t其他\t备注';
+  const rows = fr.map(r =>
+    [r.date, r.route, r.km||'',
+     fmt(r.traffic), fmt(r.hotel), fmt(r.parts),
+     fmt(r.entertain), fmt(r.toll), fmt(r.other), r.note||''].join('\t')
+  );
+  doCopy([header, ...rows].join('\n'));
+  showToast('✅ 已复制全表，粘贴到Excel即可');
+}
+
+function doCopy(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).catch(() => legacyCopy(text));
+  } else legacyCopy(text);
+}
+function legacyCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try { document.execCommand('copy'); } catch(e) {}
+  document.body.removeChild(ta);
+}
+
+function delRecord(id) {
+  if (!confirm('确定删除这条记录？')) return;
+  records = records.filter(r => r.id !== id);
+  save(); renderRecords();
+}
+
+function openEdit(id) {
+  editId = id;
+  const r = records.find(x => x.id === id);
+  if (!r) return;
+  $('e-date').value = r.date || '';
+  $('e-km').value = r.km || '';
+  $('e-route').value = r.route || '';
+  $('e-traffic').value = r.traffic || '';
+  $('e-hotel').value = r.hotel || '';
+  $('e-parts').value = r.parts || '';
+  $('e-entertain').value = r.entertain || '';
+  $('e-toll').value = r.toll || '';
+  $('e-other').value = r.other || '';
+  $('e-note').value = r.note || '';
+  $('modal').classList.add('open');
+}
+function closeModal() { $('modal').classList.remove('open'); editId = null; }
+function saveEdit() {
+  if (!editId) return;
+  const idx = records.findIndex(r => r.id === editId);
+  if (idx < 0) return;
+  records[idx] = {
+    ...records[idx],
+    date: $('e-date').value,
+    route: ev('route'),
+    km: parseFloat($('e-km').value) || 0,
+    traffic: eNum('traffic'), hotel: eNum('hotel'),
+    parts: eNum('parts'), entertain: eNum('entertain'),
+    toll: eNum('toll'), other: eNum('other'),
+    note: ev('note')
+  };
+  records.sort((a, b) => a.date.localeCompare(b.date));
+  save(); closeModal(); renderRecords();
+  showToast('✅ 修改已保存');
+}
+
+let toastT;
+function showToast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+renderRecords();
+</script>
+</body>
+</html>
