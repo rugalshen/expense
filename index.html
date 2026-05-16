@@ -104,6 +104,18 @@ header p{font-size:11px;opacity:.72;margin-top:2px}
 .toast.show{transform:translateX(-50%) translateY(0)}
 
 
+
+/* ── 车牌快选 ── */
+.car-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.car-chip {
+  padding: 6px 12px; border-radius: 8px;
+  border: 1.5px solid var(--border);
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  background: #fff; color: var(--text);
+  transition: all .15s; font-family: monospace;
+}
+.car-chip:active { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+
 /* ── Fake numeric input (no system keyboard) ── */
 .fake-input {
   width: 100%; padding: 10px 12px;
@@ -219,7 +231,11 @@ header p{font-size:11px;opacity:.72;margin-top:2px}
       <div class="af"><label>其他</label><div class="fake-input" id="t-other" data-ph="0 或 =10+5" onclick="openNumpad(this)"></div></div>
     </div>
     <div class="form-body" style="padding-top:10px">
-      <div class="field"><label>备注</label><textarea id="t-note" placeholder="如：沪FJY707自己车，停车12元"></textarea></div>
+      <div class="field">
+        <label>备注（用车可快选车牌）</label>
+        <div class="car-chips" id="car-chips-add"></div>
+        <textarea id="t-note" placeholder="如：沪FJY707自己车，停车12元"></textarea>
+      </div>
     </div>
     <button class="btn-save" onclick="saveTrip()">✓ 保存出差记录</button>
   </div>
@@ -335,7 +351,11 @@ header p{font-size:11px;opacity:.72;margin-top:2px}
       <div class="af"><label>其他</label><div class="fake-input" id="et-other" data-ph="0 或 =10+5" onclick="openNumpad(this)"></div></div>
     </div>
     <div class="form-body" style="padding-top:10px">
-      <div class="field"><label>备注</label><textarea id="et-note"></textarea></div>
+      <div class="field">
+        <label>备注（用车可快选车牌）</label>
+        <div class="car-chips" id="car-chips-edit"></div>
+        <textarea id="et-note"></textarea>
+      </div>
     </div>
     <button class="btn-save" onclick="updateTrip()">✓ 保存修改</button>
   </div>
@@ -849,6 +869,47 @@ function toast(msg) {
   clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2500);
 }
 
+
+
+// ── 车牌快选 ──
+const CAR_KEY = 'baoxiao_cars';
+let carPlates = JSON.parse(localStorage.getItem(CAR_KEY) || JSON.stringify([
+  '沪AG51688（V6）',
+  '沪AHQ821（GL8）',
+  '沪BES701（GL6）',
+  '沪AGV2212（新V6）',
+  '沪FJY707（自己车）'
+]));
+
+function saveCars() { localStorage.setItem(CAR_KEY, JSON.stringify(carPlates)); }
+
+function renderCarChips(groupId, noteId) {
+  const wrap = $(groupId);
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  carPlates.forEach(plate => {
+    const c = document.createElement('div');
+    c.className = 'car-chip';
+    c.textContent = plate;
+    c.onclick = () => {
+      const ta = $(noteId);
+      const cur = ta.value;
+      // append or set
+      ta.value = cur ? cur + ' ' + plate : plate;
+    };
+    wrap.appendChild(c);
+  });
+}
+
+renderCarChips('car-chips-add', 't-note');
+renderCarChips('car-chips-edit', 'et-note');
+
+// Re-render edit chips when modal opens
+const _origOpenEditTrip = openEditTrip;
+openEditTrip = function(id) {
+  _origOpenEditTrip(id);
+  renderCarChips('car-chips-edit', 'et-note');
+};
 
 // ── 数字键盘逻辑 ──
 let npTarget = null;
