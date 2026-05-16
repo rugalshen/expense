@@ -103,6 +103,25 @@ header p{font-size:11px;opacity:.72;margin-top:2px}
 .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:#222;color:#fff;padding:10px 22px;border-radius:24px;font-size:13px;font-weight:600;z-index:999;transition:transform .3s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.25)}
 .toast.show{transform:translateX(-50%) translateY(0)}
 
+
+/* ── Fake numeric input (no system keyboard) ── */
+.fake-input {
+  width: 100%; padding: 10px 12px;
+  border: 1.5px solid var(--border); border-radius: 9px;
+  font-family: inherit; font-size: 15px;
+  background: #fafafa; color: var(--text);
+  min-height: 44px; cursor: pointer;
+  transition: border-color .15s, background .15s;
+  word-break: break-all; line-height: 1.4;
+  display: flex; align-items: center;
+}
+.fake-input:empty::before { content: attr(data-ph); color: #bbb; }
+.fake-input.active { border-color: var(--primary); background: #fff; }
+.fake-input.auto-fi {
+  background: #f0f7e6; color: var(--g); font-weight: 700; cursor: default;
+}
+.af .fake-input { padding: 9px 10px; border-radius: 8px; }
+
 /* ── 数字键盘 ── */
 .numpad-wrap {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 900;
@@ -181,23 +200,23 @@ header p{font-size:11px;opacity:.72;margin-top:2px}
       <div class="field"><label>出差行程</label><textarea id="t-route" placeholder="如：家-浦东机场-客户-酒店"></textarea></div>
       <div class="field">
         <label>公里数（支持 =10+20+30 格式）</label>
-        <input type="text" id="t-km" placeholder="如：343 或 =120+100+123">
+        <div class="fake-input" id="t-km" data-ph="如：343 或 =120+100+123" onclick="openNumpad(this)"></div>
         <div class="hint">💡 多段行程可用 =段1+段2+段3，复制到Excel自动计算总公里数</div>
       </div>
       <div class="field auto">
         <label>油费（Excel中自动 = 公里数 × 1.35）</label>
-        <input type="text" id="t-oil" readonly placeholder="在Excel中自动计算">
+        <div class="fake-input auto-fi" id="t-oil" data-ph="Excel中自动计算"></div>
       </div>
     </div>
     <div class="sec-label">其他费用（支持 =10+5 格式）</div>
     <div class="amt-grid">
-      <div class="af"><label>交通</label><input type="text" id="t-traffic" placeholder="0 或 =10+5"></div>
-      <div class="af"><label>补贴</label><input type="text" id="t-subsidy" placeholder="0 或 =10+5"></div>
-      <div class="af"><label>住宿</label><input type="text" id="t-hotel" placeholder="0 或 =10+5"></div>
-      <div class="af"><label>招待</label><input type="text" id="t-entertain" placeholder="0 或 =10+5"></div>
-      <div class="af"><label>配件</label><input type="text" id="t-parts" placeholder="0 或 =10+5"></div>
-      <div class="af"><label>路桥费</label><input type="text" id="t-toll" placeholder="0 或 =10+5"></div>
-      <div class="af"><label>其他</label><input type="text" id="t-other" placeholder="0 或 =10+5"></div>
+      <div class="af"><label>交通</label><div class="fake-input" id="t-traffic" data-ph="0 或 =10+5" onclick="openNumpad(this)"></div></div>
+      <div class="af"><label>补贴</label><div class="fake-input" id="t-subsidy" data-ph="0 或 =10+5" onclick="openNumpad(this)"></div></div>
+      <div class="af"><label>住宿</label><div class="fake-input" id="t-hotel" data-ph="0 或 =10+5" onclick="openNumpad(this)"></div></div>
+      <div class="af"><label>招待</label><div class="fake-input" id="t-entertain" data-ph="0 或 =10+5" onclick="openNumpad(this)"></div></div>
+      <div class="af"><label>配件</label><div class="fake-input" id="t-parts" data-ph="0 或 =10+5" onclick="openNumpad(this)"></div></div>
+      <div class="af"><label>路桥费</label><div class="fake-input" id="t-toll" data-ph="0 或 =10+5" onclick="openNumpad(this)"></div></div>
+      <div class="af"><label>其他</label><div class="fake-input" id="t-other" data-ph="0 或 =10+5" onclick="openNumpad(this)"></div></div>
     </div>
     <div class="form-body" style="padding-top:10px">
       <div class="field"><label>备注</label><textarea id="t-note" placeholder="如：沪FJY707自己车，停车12元"></textarea></div>
@@ -250,7 +269,7 @@ header p{font-size:11px;opacity:.72;margin-top:2px}
       </div>
       <div class="field"><label>配件名称</label><textarea id="p-name" placeholder="如：IPT使用立压机1400、手套16、螺丝4"></textarea></div>
       <div class="row2">
-        <div class="field"><label>金额（元）</label><input type="text" id="p-amount" placeholder="0 或 =100+200"></div>
+        <div class="field"><label>金额（元）</label><div class="fake-input" id="p-amount" data-ph="0 或 =100+200" onclick="openNumpad(this)"></div></div>
         <div class="field">
           <label>票据类型</label>
           <div class="chips" id="p-chips">
@@ -301,19 +320,19 @@ header p{font-size:11px;opacity:.72;margin-top:2px}
       <div class="field"><label>出差行程</label><textarea id="et-route"></textarea></div>
       <div class="field">
         <label>公里数（支持 =10+20+30）</label>
-        <input type="text" id="et-km">
+        <div class="fake-input" id="et-km" data-ph="如：343 或 =120+100+123" onclick="openNumpad(this)"></div>
       </div>
-      <div class="field auto"><label>油费（Excel自动计算）</label><input type="text" id="et-oil" readonly></div>
+      <div class="field auto"><label>油费（Excel自动计算）</label><div class="fake-input auto-fi" id="et-oil" data-ph="Excel中自动计算"></div></div>
     </div>
     <div class="sec-label">其他费用</div>
     <div class="amt-grid">
-      <div class="af"><label>交通</label><input type="text" id="et-traffic"></div>
-      <div class="af"><label>补贴</label><input type="text" id="et-subsidy"></div>
-      <div class="af"><label>住宿</label><input type="text" id="et-hotel"></div>
-      <div class="af"><label>招待</label><input type="text" id="et-entertain"></div>
-      <div class="af"><label>配件</label><input type="text" id="et-parts"></div>
-      <div class="af"><label>路桥费</label><input type="text" id="et-toll"></div>
-      <div class="af"><label>其他</label><input type="text" id="et-other"></div>
+      <div class="af"><label>交通</label><div class="fake-input" id="et-traffic" data-ph="0 或 =10+5" onclick="openNumpad(this)"></div></div>
+      <div class="af"><label>补贴</label><div class="fake-input" id="et-subsidy" data-ph="0 或 =10+5" onclick="openNumpad(this)"></div></div>
+      <div class="af"><label>住宿</label><div class="fake-input" id="et-hotel" data-ph="0 或 =10+5" onclick="openNumpad(this)"></div></div>
+      <div class="af"><label>招待</label><div class="fake-input" id="et-entertain" data-ph="0 或 =10+5" onclick="openNumpad(this)"></div></div>
+      <div class="af"><label>配件</label><div class="fake-input" id="et-parts" data-ph="0 或 =10+5" onclick="openNumpad(this)"></div></div>
+      <div class="af"><label>路桥费</label><div class="fake-input" id="et-toll" data-ph="0 或 =10+5" onclick="openNumpad(this)"></div></div>
+      <div class="af"><label>其他</label><div class="fake-input" id="et-other" data-ph="0 或 =10+5" onclick="openNumpad(this)"></div></div>
     </div>
     <div class="form-body" style="padding-top:10px">
       <div class="field"><label>备注</label><textarea id="et-note"></textarea></div>
@@ -360,7 +379,7 @@ header p{font-size:11px;opacity:.72;margin-top:2px}
       </div>
       <div class="field"><label>配件名称</label><textarea id="ep-name"></textarea></div>
       <div class="row2">
-        <div class="field"><label>金额</label><input type="text" id="ep-amount"></div>
+        <div class="field"><label>金额</label><div class="fake-input" id="ep-amount" data-ph="0 或 =100+200" onclick="openNumpad(this)"></div></div>
         <div class="field">
           <label>票据类型</label>
           <div class="chips" id="ep-chips">
@@ -459,7 +478,13 @@ let exportMonth = 'all';
 })();
 
 const $ = id => document.getElementById(id);
-const tv = id => $(id).value.trim();
+const tv = id => {
+  const el = $(id);
+  if (!el) return '';
+  // fake-input div
+  if (el.tagName === 'DIV') return (el.dataset.val || '').trim();
+  return el.value.trim();
+};
 const pad = n => String(n).padStart(2,'0');
 const todayStr = () => { const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
 
@@ -517,10 +542,9 @@ function saveTrip() {
   db.trips.push(r);
   db.trips.sort((a,b) => a.date.localeCompare(b.date));
   save();
-  ['t-dept','t-client','t-purpose','t-route','t-km','t-traffic','t-subsidy',
-   't-hotel','t-entertain','t-parts','t-toll','t-other','t-note'].forEach(id => $(id).value='');
+  ['t-dept','t-client','t-purpose','t-route','t-note'].forEach(id => $(id).value='');
+  ['t-km','t-traffic','t-subsidy','t-hotel','t-entertain','t-parts','t-toll','t-other'].forEach(id => setFI(id,''));
   $('t-date').value = todayStr();
-  $('t-oil').value = '';
   renderTrips(); toast('✅ 出差记录已保存');
 }
 
@@ -557,12 +581,12 @@ function openEditTrip(id) {
   const r = db.trips.find(x => x.id===id); if (!r) return;
   $('et-date').value=r.date||''; $('et-dept').value=r.dept||'';
   $('et-client').value=r.client||''; $('et-purpose').value=r.purpose||'';
-  $('et-route').value=r.route||''; $('et-km').value=r.km||'';
-  $('et-oil').value='Excel中自动计算';
-  $('et-traffic').value=r.traffic||''; $('et-subsidy').value=r.subsidy||'';
-  $('et-hotel').value=r.hotel||''; $('et-entertain').value=r.entertain||'';
-  $('et-parts').value=r.parts||''; $('et-toll').value=r.toll||'';
-  $('et-other').value=r.other||''; $('et-note').value=r.note||'';
+  $('et-route').value=r.route||'';
+  setFI('et-km', r.km||'');
+  setFI('et-traffic', r.traffic||''); setFI('et-subsidy', r.subsidy||'');
+  setFI('et-hotel', r.hotel||''); setFI('et-entertain', r.entertain||'');
+  setFI('et-parts', r.parts||''); setFI('et-toll', r.toll||'');
+  setFI('et-other', r.other||''); $('et-note').value=r.note||'';
   $('mo-trip').classList.add('open');
 }
 function updateTrip() {
@@ -660,7 +684,7 @@ function savePart() {
   db.parts.push(r);
   db.parts.sort((a,b)=>a.date.localeCompare(b.date));
   save();
-  ['p-client','p-name','p-amount'].forEach(id=>$(id).value='');
+  ['p-client','p-name'].forEach(id=>$(id).value=''); setFI('p-amount','');
   $('p-date').value=todayStr(); clearChips('p-chips');
   renderParts(); toast('✅ 配件费记录已保存');
 }
@@ -691,7 +715,7 @@ function openEditPart(id) {
   editId=id;
   const r=db.parts.find(x=>x.id===id); if(!r) return;
   $('ep-date').value=r.date||''; $('ep-client').value=r.client||'';
-  $('ep-name').value=r.name||''; $('ep-amount').value=r.amount||'';
+  $('ep-name').value=r.name||''; setFI('ep-amount', r.amount||'');
   setChip('ep-chips',r.ticket||'');
   $('mo-part').classList.add('open');
 }
@@ -827,67 +851,84 @@ function toast(msg) {
 
 
 // ── 数字键盘逻辑 ──
-let npTarget = null; // current input element
+let npTarget = null;
 let npVal = '';
 
-const NP_FIELDS = [
+const NP_IDS = [
   't-km','t-traffic','t-subsidy','t-hotel','t-entertain','t-parts','t-toll','t-other',
   'et-km','et-traffic','et-subsidy','et-hotel','et-entertain','et-parts','et-toll','et-other',
   'p-amount','ep-amount'
 ];
 
-function initNumpad() {
-  NP_FIELDS.forEach(id => {
-    const el = $(id);
-    if (!el) return;
-    el.readOnly = true; // prevent system keyboard
-    el.addEventListener('click', () => openNumpad(el));
-    el.addEventListener('focus', () => openNumpad(el));
-  });
-  // close on overlay tap
-  document.addEventListener('click', e => {
-    if (npTarget && !e.target.closest('.numpad-wrap') && !NP_FIELDS.includes(e.target.id)) {
-      closeNumpad();
-    }
-  });
+// Helper: get value from fake-input div
+function getFI(id) {
+  const el = $(id);
+  if (!el) return '';
+  return el.dataset.val || '';
+}
+// Helper: set value on fake-input div
+function setFI(id, val) {
+  const el = $(id);
+  if (!el) return;
+  el.dataset.val = val;
+  el.textContent = val;
 }
 
 function openNumpad(el) {
+  // don't open for auto fields
+  if (el.classList.contains('auto-fi')) return;
+  // close any active
+  document.querySelectorAll('.fake-input.active').forEach(x => x.classList.remove('active'));
   npTarget = el;
-  npVal = el.value || '';
+  npVal = el.dataset.val || '';
+  el.classList.add('active');
   $('np-display').textContent = npVal || '—';
-  // label from field's label element
   const label = el.closest('.field,.af') && el.closest('.field,.af').querySelector('label');
-  $('np-label').textContent = label ? label.textContent : '输入数值';
+  $('np-label').textContent = label ? label.textContent.replace('（支持 =10+20+30 格式）','').replace('（支持 =10+5 格式）','').trim() : '输入数值';
   $('numpad').classList.add('open');
+  // scroll target into view above keyboard
+  setTimeout(() => el.scrollIntoView({behavior:'smooth', block:'center'}), 100);
 }
 
 function closeNumpad() {
   $('numpad').classList.remove('open');
+  if (npTarget) npTarget.classList.remove('active');
   npTarget = null;
 }
 
 function nk(ch) {
-  // = only at start
   if (ch === '=' && npVal.length > 0) return;
-  // + only after a digit or .
   if (ch === '+' && npVal.length === 0) return;
+  // prevent double operator
+  if (ch === '+' && npVal.endsWith('+')) return;
   npVal += ch;
   $('np-display').textContent = npVal;
-  if (npTarget) npTarget.value = npVal;
+  if (npTarget) {
+    npTarget.dataset.val = npVal;
+    npTarget.textContent = npVal;
+  }
 }
 
 function nkDel() {
   npVal = npVal.slice(0, -1);
   $('np-display').textContent = npVal || '—';
-  if (npTarget) npTarget.value = npVal;
+  if (npTarget) {
+    npTarget.dataset.val = npVal;
+    npTarget.textContent = npVal;
+  }
 }
 
-function nkDone() {
+function nkDone() { closeNumpad(); }
+
+// close when tapping outside
+document.addEventListener('click', e => {
+  if (!npTarget) return;
+  if (e.target.closest('.numpad-wrap')) return;
+  if (e.target.closest('.fake-input')) return;
   closeNumpad();
-}
+});
 
-initNumpad();
+// Override tv() to also read from fake-input divs
 
 // init render
 renderTrips(); renderEntertains(); renderParts();
