@@ -919,7 +919,7 @@ function exportExcel() {
 
     // Oil = km * 1.35 as real formula referencing the km cell
     const oilCell = row.getCell(7); // column G
-    oilCell.value = { formula: `${kmCol}${rowNum}*1.35`, date1904: false };
+    oilCell.value = { formula: `IF(${kmCol}${rowNum}="","",${kmCol}${rowNum}*1.35)`, date1904: false };
     oilCell.numFmt = '0.00';
 
     // Style other formula cells (traffic, hotel etc) 
