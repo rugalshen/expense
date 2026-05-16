@@ -4,630 +4,710 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>费用报销记账</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root {
-  --bg: #f2f4f7;
-  --card: #ffffff;
-  --primary: #1a56a0;
-  --primary-light: #e8f0fb;
-  --accent: #2e7d32;
-  --text: #1c1c1e;
-  --muted: #8e8e93;
-  --border: #e0e0e0;
-  --red: #c62828;
-  --red-light: #ffebee;
-  --shadow: 0 1px 8px rgba(0,0,0,0.10);
-  --radius: 14px;
+  --bg:#f2f4f7;--card:#fff;--primary:#1a56a0;--primary-light:#e8f0fb;
+  --g:#2e7d32;--g-light:#e8f5e9;--o:#d97706;--o-light:#fef3c7;
+  --v:#7c3aed;--v-light:#ede9fe;
+  --text:#1c1c1e;--muted:#8e8e93;--border:#e0e0e0;
+  --red:#c62828;--red-light:#ffebee;
+  --shadow:0 1px 8px rgba(0,0,0,.10);--r:14px;
 }
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-body {
-  font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  padding-bottom: 48px;
-}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,"PingFang SC","Helvetica Neue",sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:60px}
+header{background:var(--primary);color:#fff;padding:16px 18px 12px;position:sticky;top:0;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+header h1{font-size:17px;font-weight:700;letter-spacing:.5px}
+header p{font-size:11px;opacity:.72;margin-top:2px}
 
-header {
-  background: var(--primary);
-  color: #fff;
-  padding: 16px 18px 12px;
-  position: sticky; top: 0; z-index: 200;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
-}
-header h1 { font-size: 17px; font-weight: 700; letter-spacing: .5px; }
-header p  { font-size: 11px; opacity: .72; margin-top: 2px; }
+.tabs{display:flex;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:56px;z-index:190;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tab{flex:0 0 auto;padding:11px 18px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2.5px solid transparent;white-space:nowrap;transition:color .15s,border-color .15s}
+.tab.active{color:var(--primary);border-color:var(--primary)}
+.tab.t2.active{color:var(--o);border-color:var(--o)}
+.tab.t3.active{color:var(--v);border-color:var(--v)}
+.tab.t4.active{color:var(--g);border-color:var(--g)}
 
-.tabs {
-  display: flex;
-  background: var(--card);
-  border-bottom: 1px solid var(--border);
-  position: sticky; top: 56px; z-index: 190;
-}
-.tab {
-  flex: 1; padding: 12px 0; text-align: center;
-  font-size: 13px; font-weight: 600; color: var(--muted);
-  cursor: pointer; border-bottom: 2.5px solid transparent;
-  transition: color .15s, border-color .15s;
-}
-.tab.active { color: var(--primary); border-color: var(--primary); }
+.panel{display:none;padding:14px}
+.panel.active{display:block}
 
-.panel { display: none; padding: 14px; }
-.panel.active { display: block; }
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px}
+.card-title{font-size:12px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.5px;padding:14px 16px 0}
+.card-title.o{color:var(--o)}.card-title.v{color:var(--v)}
 
-.card {
-  background: var(--card);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-  margin-bottom: 14px;
-}
-.card-title {
-  font-size: 12px; font-weight: 700; color: var(--primary);
-  text-transform: uppercase; letter-spacing: .5px;
-  padding: 14px 16px 0;
-}
+.form-body{padding:12px 16px 4px;display:flex;flex-direction:column;gap:10px}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.field input,.field textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:inherit;font-size:15px;background:#fafafa;color:var(--text);outline:none;transition:border-color .15s,background .15s;-webkit-appearance:none}
+.field input:focus,.field textarea:focus{border-color:var(--primary);background:#fff}
+.field textarea{resize:none;height:62px;font-size:14px}
+.field.auto input{background:#f0f7e6;color:var(--g);font-weight:700;cursor:default}
+.hint{font-size:11px;color:var(--g);margin-top:3px;padding-left:2px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
-/* ── Form fields ── */
-.form-body { padding: 12px 16px 4px; display: flex; flex-direction: column; gap: 10px; }
+.sec-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:6px 16px 0}
+.amt-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px 16px 0}
+.af label{font-size:11px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px}
+.af input{width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:15px;background:#fafafa;color:var(--text);outline:none;-webkit-appearance:none;transition:border-color .15s,background .15s}
+.af input:focus{border-color:var(--primary);background:#fff}
 
-.field label {
-  display: block; font-size: 11px; font-weight: 700;
-  color: var(--muted); text-transform: uppercase;
-  letter-spacing: .4px; margin-bottom: 5px;
-}
-.field input, .field textarea {
-  width: 100%; padding: 10px 12px;
-  border: 1.5px solid var(--border); border-radius: 9px;
-  font-family: inherit; font-size: 15px;
-  background: #fafafa; color: var(--text);
-  outline: none; transition: border-color .15s, background .15s;
-  -webkit-appearance: none;
-}
-.field input:focus, .field textarea:focus {
-  border-color: var(--primary); background: #fff;
-}
-.field textarea { resize: none; height: 62px; font-size: 14px; }
-.field input[type=number] { -moz-appearance: textfield; }
-.field input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:6px 13px;border-radius:20px;border:1.5px solid var(--border);font-size:12px;font-weight:500;cursor:pointer;background:#fff;color:var(--muted);transition:all .15s;user-select:none}
+.chip.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.chip.o.active{background:var(--o);border-color:var(--o);color:#fff}
+.chip.v.active{background:var(--v);border-color:var(--v);color:#fff}
 
-.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.btn-save{display:block;width:calc(100% - 32px);margin:14px 16px 16px;padding:14px;background:var(--primary);color:#fff;border:none;border-radius:11px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:background .15s,transform .1s}
+.btn-save:active{background:#134080;transform:scale(.98)}
+.btn-save.o{background:var(--o)}.btn-save.o:active{background:#92400e}
+.btn-save.v{background:var(--v)}.btn-save.v:active{background:#5b21b6}
 
-.amounts-label {
-  font-size: 11px; font-weight: 700; color: var(--muted);
-  text-transform: uppercase; letter-spacing: .4px;
-  padding: 4px 16px 0;
-}
-.amounts-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  padding: 8px 16px 0;
-}
-.amt-field label {
-  font-size: 11px; font-weight: 600; color: var(--muted);
-  display: block; margin-bottom: 4px;
-}
-.amt-field input {
-  width: 100%; padding: 9px 10px;
-  border: 1.5px solid var(--border); border-radius: 8px;
-  font-family: inherit; font-size: 15px;
-  background: #fafafa; color: var(--text); outline: none;
-  -webkit-appearance: none; -moz-appearance: textfield;
-  transition: border-color .15s, background .15s;
-}
-.amt-field input:focus { border-color: var(--primary); background: #fff; }
-.amt-field input::-webkit-inner-spin-button { -webkit-appearance: none; }
+/* list */
+.sec-head{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:12px 0 8px}
+.recs{display:flex;flex-direction:column;gap:10px}
+.rc{background:var(--card);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+.rh{display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px;border-bottom:1px solid var(--border)}
+.rdate{font-size:15px;font-weight:700;color:var(--primary)}
+.rdate.o{color:var(--o)}.rdate.v{color:var(--v)}
+.rtotal{font-size:14px;font-weight:700;color:var(--g)}
+.rb{padding:10px 14px}
+.rl{font-size:13px;color:#444;margin-bottom:4px}
+.rm{font-size:12px;color:var(--muted);margin-bottom:3px}
+.ract{padding:8px 14px;border-top:1px solid var(--border);display:flex;gap:8px}
+.bedit{padding:5px 14px;border-radius:7px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:#f5f5f5;color:var(--text)}
+.bdel{padding:5px 14px;border-radius:7px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--red);color:var(--red);background:var(--red-light)}
+.empty{text-align:center;padding:36px 20px;color:var(--muted);font-size:14px}
+.empty-icon{font-size:34px;margin-bottom:8px}
 
-.btn-submit {
-  display: block; width: calc(100% - 32px); margin: 14px 16px 16px;
-  padding: 14px; background: var(--primary); color: #fff;
-  border: none; border-radius: 11px; font-family: inherit;
-  font-size: 15px; font-weight: 700; cursor: pointer;
-  transition: background .15s, transform .1s; letter-spacing: .3px;
-}
-.btn-submit:active { background: #134080; transform: scale(.98); }
+/* export */
+.exp-card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:18px 16px;margin-bottom:14px}
+.exp-card h2{font-size:14px;font-weight:700;margin-bottom:6px}
+.exp-card p{font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6}
+.month-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.mbtn{padding:6px 14px;border:1.5px solid var(--border);background:#fff;color:var(--text);border-radius:20px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.mbtn.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.sg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
+.sb{background:#f7f8fa;border-radius:10px;padding:10px 12px;text-align:center}
+.sb .n{font-size:20px;font-weight:700;color:var(--primary)}
+.sb .l{font-size:11px;color:var(--muted);margin-top:2px}
+.btn-exp{display:block;width:100%;padding:14px;background:var(--g);color:#fff;border:none;border-radius:11px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:background .15s,transform .1s}
+.btn-exp:active{background:#1b5e20;transform:scale(.98)}
 
-/* ── Records ── */
-.toolbar {
-  display: flex; gap: 8px; align-items: center;
-  padding: 10px 14px; background: var(--card);
-  border-bottom: 1px solid var(--border);
-  overflow-x: auto; -webkit-overflow-scrolling: touch;
-}
-.toolbar-label { font-size: 11px; font-weight: 700; color: var(--muted); white-space: nowrap; }
-.btn-month {
-  padding: 5px 13px; border: 1.5px solid var(--border);
-  background: #fff; color: var(--text);
-  border-radius: 20px; font-family: inherit;
-  font-size: 12px; font-weight: 600; cursor: pointer;
-  white-space: nowrap; transition: all .15s;
-}
-.btn-month.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+/* modal */
+.mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:flex-end}
+.mo.open{display:flex}
+.md{background:var(--card);border-radius:20px 20px 0 0;width:100%;max-height:92vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,20px);animation:su .25s ease}
+@keyframes su{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.mh{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--card);z-index:10}
+.mt{font-size:15px;font-weight:700}
+.mc{background:none;border:none;font-size:22px;color:var(--muted);cursor:pointer}
 
-.copy-bar {
-  display: flex; flex-wrap: wrap; gap: 7px; align-items: center;
-  padding: 10px 14px; background: #f7f8fa;
-  border-bottom: 1px solid var(--border);
-}
-.copy-bar-label { font-size: 11px; font-weight: 700; color: var(--muted); margin-right: 2px; white-space: nowrap; }
-.btn-col {
-  padding: 5px 11px; border: 1.5px solid var(--primary);
-  background: #fff; color: var(--primary);
-  border-radius: 7px; font-family: inherit;
-  font-size: 12px; font-weight: 600; cursor: pointer;
-  white-space: nowrap; transition: all .15s;
-}
-.btn-col:active { background: var(--primary); color: #fff; }
-.btn-all {
-  padding: 5px 13px; border: 1.5px solid var(--accent);
-  background: var(--accent); color: #fff;
-  border-radius: 7px; font-family: inherit;
-  font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
-}
-.btn-all:active { background: #1b5e20; }
-.btn-dl {
-  padding: 5px 13px; border: 1.5px solid #b45309;
-  background: #d97706; color: #fff;
-  border-radius: 7px; font-family: inherit;
-  font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
-}
-.btn-dl:active { background: #92400e; }
-
-.summary-row {
-  padding: 9px 16px; background: var(--primary-light);
-  border-bottom: 1px solid var(--border);
-  font-size: 12px; color: var(--primary); font-weight: 600;
-}
-
-.record-list { padding: 10px 14px; display: flex; flex-direction: column; gap: 10px; }
-.rec-card {
-  background: var(--card); border-radius: 12px;
-  box-shadow: var(--shadow); overflow: hidden;
-}
-.rec-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 14px 8px; border-bottom: 1px solid var(--border);
-}
-.rec-date { font-size: 15px; font-weight: 700; color: var(--primary); }
-.rec-total { font-size: 15px; font-weight: 700; color: var(--accent); }
-.rec-body { padding: 10px 14px; }
-.rec-route { font-size: 13px; color: #444; margin-bottom: 6px; }
-.rec-km { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
-.rec-amts { font-size: 12px; color: #555; line-height: 1.8; }
-.rec-note { font-size: 12px; color: var(--muted); margin-top: 5px; }
-.rec-actions {
-  padding: 8px 14px; border-top: 1px solid var(--border);
-  display: flex; gap: 8px;
-}
-.btn-edit {
-  padding: 5px 14px; border-radius: 7px;
-  font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
-  border: 1.5px solid var(--border); background: #f5f5f5; color: var(--text);
-}
-.btn-del {
-  padding: 5px 14px; border-radius: 7px;
-  font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
-  border: 1.5px solid var(--red); color: var(--red); background: var(--red-light);
-}
-
-.empty { text-align: center; padding: 50px 20px; color: var(--muted); font-size: 14px; }
-.empty-icon { font-size: 40px; margin-bottom: 10px; }
-
-/* ── Modal ── */
-.modal-overlay {
-  display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,.45); z-index: 500;
-  align-items: flex-end;
-}
-.modal-overlay.open { display: flex; }
-.modal {
-  background: var(--card); border-radius: 20px 20px 0 0;
-  width: 100%; max-height: 92vh; overflow-y: auto;
-  padding-bottom: env(safe-area-inset-bottom, 20px);
-  animation: slideUp .25s ease;
-}
-@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-.modal-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 18px 12px; border-bottom: 1px solid var(--border);
-  position: sticky; top: 0; background: var(--card); z-index: 10;
-}
-.modal-title { font-size: 15px; font-weight: 700; }
-.btn-close { background: none; border: none; font-size: 22px; color: var(--muted); cursor: pointer; }
-
-/* ── Toast ── */
-.toast {
-  position: fixed; bottom: 28px; left: 50%;
-  transform: translateX(-50%) translateY(80px);
-  background: #222; color: #fff;
-  padding: 10px 22px; border-radius: 24px;
-  font-size: 13px; font-weight: 600; z-index: 999;
-  transition: transform .3s cubic-bezier(.34,1.56,.64,1);
-  white-space: nowrap; pointer-events: none;
-  box-shadow: 0 4px 20px rgba(0,0,0,.25);
-}
-.toast.show { transform: translateX(-50%) translateY(0); }
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:#222;color:#fff;padding:10px 22px;border-radius:24px;font-size:13px;font-weight:600;z-index:999;transition:transform .3s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.25)}
+.toast.show{transform:translateX(-50%) translateY(0)}
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
 <header>
   <h1>📋 费用报销记账</h1>
-  <p>随手记 · 月底按列复制到报销表</p>
+  <p>随手记 · 月底一键生成报销表</p>
 </header>
 
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('add')">➕ 记一条</div>
-  <div class="tab" onclick="switchTab('records')">📄 记录 / 导出</div>
+  <div class="tab active" onclick="sw(0)">🚗 出差</div>
+  <div class="tab t2"     onclick="sw(1)">🍽 招待</div>
+  <div class="tab t3"     onclick="sw(2)">🔧 配件</div>
+  <div class="tab t4"     onclick="sw(3)">📤 导出</div>
 </div>
 
-<!-- ── ADD ── -->
-<div class="panel active" id="panel-add">
+<!-- ── 出差 ── -->
+<div class="panel active" id="p0">
   <div class="card">
-    <div class="card-title">基本信息</div>
+    <div class="card-title">新增出差记录</div>
     <div class="form-body">
       <div class="row2">
-        <div class="field">
-          <label>日期</label>
-          <input type="date" id="f-date">
-        </div>
-        <div class="field">
-          <label>公里数</label>
-          <input type="text" id="f-km" placeholder="0">
-        </div>
+        <div class="field"><label>日期</label><input type="date" id="t-date"></div>
+        <div class="field"><label>费用所属</label><input type="text" id="t-dept" placeholder="如：技术部"></div>
       </div>
+      <div class="row2">
+        <div class="field"><label>客户</label><input type="text" id="t-client" placeholder="客户名称"></div>
+        <div class="field"><label>出差目的</label><input type="text" id="t-purpose" placeholder="如：陪同"></div>
+      </div>
+      <div class="field"><label>出差行程</label><textarea id="t-route" placeholder="如：家-浦东机场-客户-酒店"></textarea></div>
       <div class="field">
-        <label>出差行程</label>
-        <textarea id="f-route" placeholder="如：家-浦东机场-客户-酒店"></textarea>
+        <label>公里数（支持 =10+20+30 格式）</label>
+        <input type="text" id="t-km" placeholder="如：343 或 =120+100+123">
+        <div class="hint">💡 多段行程可用 =段1+段2+段3，复制到Excel自动计算总公里数</div>
+      </div>
+      <div class="field auto">
+        <label>油费（Excel中自动 = 公里数 × 1.35）</label>
+        <input type="text" id="t-oil" readonly placeholder="在Excel中自动计算">
       </div>
     </div>
-
-    <div class="amounts-label">费用明细（元，不填留空）</div>
-    <div class="amounts-grid">
-      <div class="amt-field"><label>交通</label><input type="text" id="f-traffic" placeholder="0 或 =10+5"></div>
-      <div class="amt-field"><label>住宿</label><input type="text" id="f-hotel" placeholder="0 或 =10+5"></div>
-      <div class="amt-field"><label>配件</label><input type="text" id="f-parts" placeholder="0 或 =10+5"></div>
-      <div class="amt-field"><label>招待</label><input type="text" id="f-entertain" placeholder="0 或 =10+5"></div>
-      <div class="amt-field"><label>路桥费</label><input type="text" id="f-toll" placeholder="0 或 =10+5"></div>
-      <div class="amt-field"><label>其他</label><input type="text" id="f-other" placeholder="0 或 =10+5"></div>
+    <div class="sec-label">其他费用（支持 =10+5 格式）</div>
+    <div class="amt-grid">
+      <div class="af"><label>交通</label><input type="text" id="t-traffic" placeholder="0 或 =10+5"></div>
+      <div class="af"><label>补贴</label><input type="text" id="t-subsidy" placeholder="0 或 =10+5"></div>
+      <div class="af"><label>住宿</label><input type="text" id="t-hotel" placeholder="0 或 =10+5"></div>
+      <div class="af"><label>招待</label><input type="text" id="t-entertain" placeholder="0 或 =10+5"></div>
+      <div class="af"><label>配件</label><input type="text" id="t-parts" placeholder="0 或 =10+5"></div>
+      <div class="af"><label>路桥费</label><input type="text" id="t-toll" placeholder="0 或 =10+5"></div>
+      <div class="af"><label>其他</label><input type="text" id="t-other" placeholder="0 或 =10+5"></div>
     </div>
-
     <div class="form-body" style="padding-top:10px">
+      <div class="field"><label>备注</label><textarea id="t-note" placeholder="如：沪FJY707自己车，停车12元"></textarea></div>
+    </div>
+    <button class="btn-save" onclick="saveTrip()">✓ 保存出差记录</button>
+  </div>
+  <div class="sec-head">已记录的出差</div>
+  <div class="recs" id="trip-list"></div>
+  <div class="empty" id="trip-empty"><div class="empty-icon">🚗</div>还没有出差记录</div>
+</div>
+
+<!-- ── 招待 ── -->
+<div class="panel" id="p1">
+  <div class="card">
+    <div class="card-title o">新增招待费记录</div>
+    <div class="form-body">
+      <div class="row2">
+        <div class="field"><label>日期</label><input type="date" id="e-date"></div>
+        <div class="field"><label>客户名称</label><input type="text" id="e-client" placeholder="客户名称"></div>
+      </div>
+      <div class="field"><label>消费项目和金额</label><textarea id="e-items" placeholder="如：晚餐 350元，KTV 200元"></textarea></div>
       <div class="field">
-        <label>备注</label>
-        <textarea id="f-note" placeholder="如：沪FJY707自己车，停车12元"></textarea>
+        <label>票据类型</label>
+        <div class="chips" id="e-chips">
+          <div class="chip o" data-v="定额">定额</div>
+          <div class="chip o" data-v="增普">增普</div>
+          <div class="chip o" data-v="增专">增专</div>
+          <div class="chip o" data-v="无票">无票</div>
+        </div>
+      </div>
+      <div class="field"><label>具体时间和地点</label><input type="text" id="e-loc" placeholder="如：2026/5/6 上海外滩某餐厅"></div>
+      <div class="field"><label>参与人员（包括同事）</label><input type="text" id="e-people" placeholder="如：张三、李四、客户王五"></div>
+      <div class="field"><label>具体原因和目的</label><textarea id="e-reason" placeholder="如：拜访客户，推进项目合作"></textarea></div>
+    </div>
+    <button class="btn-save o" onclick="saveEntertain()">✓ 保存招待费记录</button>
+  </div>
+  <div class="sec-head">已记录的招待费</div>
+  <div class="recs" id="ent-list"></div>
+  <div class="empty" id="ent-empty"><div class="empty-icon">🍽</div>还没有招待费记录</div>
+</div>
+
+<!-- ── 配件 ── -->
+<div class="panel" id="p2">
+  <div class="card">
+    <div class="card-title v">新增配件费记录</div>
+    <div class="form-body">
+      <div class="row2">
+        <div class="field"><label>日期</label><input type="date" id="p-date"></div>
+        <div class="field"><label>客户名称</label><input type="text" id="p-client" placeholder="客户名称"></div>
+      </div>
+      <div class="field"><label>配件名称</label><textarea id="p-name" placeholder="如：IPT使用立压机1400、手套16、螺丝4"></textarea></div>
+      <div class="row2">
+        <div class="field"><label>金额（元）</label><input type="text" id="p-amount" placeholder="0 或 =100+200"></div>
+        <div class="field">
+          <label>票据类型</label>
+          <div class="chips" id="p-chips">
+            <div class="chip v" data-v="定额">定额</div>
+            <div class="chip v" data-v="增普">增普</div>
+            <div class="chip v" data-v="增专">增专</div>
+            <div class="chip v" data-v="无票">无票</div>
+            <div class="chip v" data-v="收据">收据</div>
+          </div>
+        </div>
       </div>
     </div>
+    <button class="btn-save v" onclick="savePart()">✓ 保存配件费记录</button>
+  </div>
+  <div class="sec-head">已记录的配件费</div>
+  <div class="recs" id="part-list"></div>
+  <div class="empty" id="part-empty"><div class="empty-icon">🔧</div>还没有配件费记录</div>
+</div>
 
-    <button class="btn-submit" onclick="submitRecord()">✓ 保存这条记录</button>
+<!-- ── 导出 ── -->
+<div class="panel" id="p3">
+  <div class="exp-card">
+    <h2>📊 生成月度报销表</h2>
+    <p>选择月份，下载包含三个Sheet的完整Excel报销表。公里数和金额中的公式（如 =10+20）在Excel中自动计算。</p>
+    <div class="month-row" id="month-row"></div>
+    <div class="sg">
+      <div class="sb"><div class="n" id="s0">0</div><div class="l">出差记录</div></div>
+      <div class="sb"><div class="n" id="s1">0</div><div class="l">招待记录</div></div>
+      <div class="sb"><div class="n" id="s2">0</div><div class="l">配件记录</div></div>
+    </div>
+    <button class="btn-exp" onclick="exportExcel()">⬇️ 生成并下载报销Excel</button>
   </div>
 </div>
 
-<!-- ── RECORDS ── -->
-<div class="panel" id="panel-records">
-  <div class="card" style="margin-bottom:14px">
-    <div class="toolbar" id="month-toolbar">
-      <span class="toolbar-label">月份：</span>
-    </div>
-    <div class="summary-row" id="summary-row">暂无数据</div>
-    <div class="copy-bar">
-      <span class="copy-bar-label">复制列：</span>
-      <button class="btn-col" onclick="copyCol('date')">日期</button>
-      <button class="btn-col" onclick="copyCol('route')">出差行程</button>
-      <button class="btn-col" onclick="copyCol('km')">公里数</button>
-      <button class="btn-col" onclick="copyCol('traffic')">交通</button>
-      <button class="btn-col" onclick="copyCol('hotel')">住宿</button>
-      <button class="btn-col" onclick="copyCol('parts')">配件</button>
-      <button class="btn-col" onclick="copyCol('entertain')">招待</button>
-      <button class="btn-col" onclick="copyCol('toll')">路桥费</button>
-      <button class="btn-col" onclick="copyCol('other')">其他</button>
-      <button class="btn-col" onclick="copyCol('note')">备注</button>
-      <button class="btn-all" onclick="copyAll()">📋 复制全表</button>
-      <button class="btn-dl" onclick="downloadExcel()">⬇️ 下载Excel</button>
-    </div>
-  </div>
-
-  <div class="record-list" id="record-list"></div>
-  <div class="empty" id="empty-state">
-    <div class="empty-icon">🧾</div>
-    还没有记录，去「记一条」添加吧
-  </div>
-</div>
-
-<!-- ── EDIT MODAL ── -->
-<div class="modal-overlay" id="modal">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">编辑记录</span>
-      <button class="btn-close" onclick="closeModal()">✕</button>
-    </div>
+<!-- ── 编辑弹窗：出差 ── -->
+<div class="mo" id="mo-trip">
+  <div class="md">
+    <div class="mh"><span class="mt">编辑出差记录</span><button class="mc" onclick="closeMo('mo-trip')">✕</button></div>
     <div class="form-body" style="padding:14px 16px 4px">
       <div class="row2">
-        <div class="field">
-          <label>日期</label>
-          <input type="date" id="e-date">
-        </div>
-        <div class="field">
-          <label>公里数</label>
-          <input type="text" id="e-km" placeholder="0">
-        </div>
+        <div class="field"><label>日期</label><input type="date" id="et-date"></div>
+        <div class="field"><label>费用所属</label><input type="text" id="et-dept"></div>
       </div>
+      <div class="row2">
+        <div class="field"><label>客户</label><input type="text" id="et-client"></div>
+        <div class="field"><label>出差目的</label><input type="text" id="et-purpose"></div>
+      </div>
+      <div class="field"><label>出差行程</label><textarea id="et-route"></textarea></div>
       <div class="field">
-        <label>出差行程</label>
-        <textarea id="e-route"></textarea>
+        <label>公里数（支持 =10+20+30）</label>
+        <input type="text" id="et-km">
       </div>
+      <div class="field auto"><label>油费（Excel自动计算）</label><input type="text" id="et-oil" readonly></div>
     </div>
-    <div class="amounts-label" style="padding: 10px 16px 0">费用明细（元）</div>
-    <div class="amounts-grid">
-      <div class="amt-field"><label>交通</label><input type="text" id="e-traffic" placeholder="0 或 =10+5"></div>
-      <div class="amt-field"><label>住宿</label><input type="text" id="e-hotel" placeholder="0 或 =10+5"></div>
-      <div class="amt-field"><label>配件</label><input type="text" id="e-parts" placeholder="0 或 =10+5"></div>
-      <div class="amt-field"><label>招待</label><input type="text" id="e-entertain" placeholder="0 或 =10+5"></div>
-      <div class="amt-field"><label>路桥费</label><input type="text" id="e-toll" placeholder="0 或 =10+5"></div>
-      <div class="amt-field"><label>其他</label><input type="text" id="e-other" placeholder="0 或 =10+5"></div>
+    <div class="sec-label">其他费用</div>
+    <div class="amt-grid">
+      <div class="af"><label>交通</label><input type="text" id="et-traffic"></div>
+      <div class="af"><label>补贴</label><input type="text" id="et-subsidy"></div>
+      <div class="af"><label>住宿</label><input type="text" id="et-hotel"></div>
+      <div class="af"><label>招待</label><input type="text" id="et-entertain"></div>
+      <div class="af"><label>配件</label><input type="text" id="et-parts"></div>
+      <div class="af"><label>路桥费</label><input type="text" id="et-toll"></div>
+      <div class="af"><label>其他</label><input type="text" id="et-other"></div>
     </div>
     <div class="form-body" style="padding-top:10px">
+      <div class="field"><label>备注</label><textarea id="et-note"></textarea></div>
+    </div>
+    <button class="btn-save" onclick="updateTrip()">✓ 保存修改</button>
+  </div>
+</div>
+
+<!-- ── 编辑弹窗：招待 ── -->
+<div class="mo" id="mo-ent">
+  <div class="md">
+    <div class="mh"><span class="mt">编辑招待费记录</span><button class="mc" onclick="closeMo('mo-ent')">✕</button></div>
+    <div class="form-body" style="padding:14px 16px 4px">
+      <div class="row2">
+        <div class="field"><label>日期</label><input type="date" id="ee-date"></div>
+        <div class="field"><label>客户名称</label><input type="text" id="ee-client"></div>
+      </div>
+      <div class="field"><label>消费项目和金额</label><textarea id="ee-items"></textarea></div>
       <div class="field">
-        <label>备注</label>
-        <textarea id="e-note"></textarea>
+        <label>票据类型</label>
+        <div class="chips" id="ee-chips">
+          <div class="chip o" data-v="定额">定额</div>
+          <div class="chip o" data-v="增普">增普</div>
+          <div class="chip o" data-v="增专">增专</div>
+          <div class="chip o" data-v="无票">无票</div>
+        </div>
+      </div>
+      <div class="field"><label>具体时间和地点</label><input type="text" id="ee-loc"></div>
+      <div class="field"><label>参与人员</label><input type="text" id="ee-people"></div>
+      <div class="field"><label>具体原因和目的</label><textarea id="ee-reason"></textarea></div>
+    </div>
+    <button class="btn-save o" onclick="updateEntertain()">✓ 保存修改</button>
+  </div>
+</div>
+
+<!-- ── 编辑弹窗：配件 ── -->
+<div class="mo" id="mo-part">
+  <div class="md">
+    <div class="mh"><span class="mt">编辑配件费记录</span><button class="mc" onclick="closeMo('mo-part')">✕</button></div>
+    <div class="form-body" style="padding:14px 16px 4px">
+      <div class="row2">
+        <div class="field"><label>日期</label><input type="date" id="ep-date"></div>
+        <div class="field"><label>客户名称</label><input type="text" id="ep-client"></div>
+      </div>
+      <div class="field"><label>配件名称</label><textarea id="ep-name"></textarea></div>
+      <div class="row2">
+        <div class="field"><label>金额</label><input type="text" id="ep-amount"></div>
+        <div class="field">
+          <label>票据类型</label>
+          <div class="chips" id="ep-chips">
+            <div class="chip v" data-v="定额">定额</div>
+            <div class="chip v" data-v="增普">增普</div>
+            <div class="chip v" data-v="增专">增专</div>
+            <div class="chip v" data-v="无票">无票</div>
+            <div class="chip v" data-v="收据">收据</div>
+          </div>
+        </div>
       </div>
     </div>
-    <button class="btn-submit" onclick="saveEdit()">✓ 保存修改</button>
+    <button class="btn-save v" onclick="updatePart()">✓ 保存修改</button>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-const KEY = 'kewei_expense_v3';
-let records = [];
-try { records = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) {}
-let filterMonth = 'all';
+const KEY = 'baoxiao_v4';
+let db = { trips:[], entertains:[], parts:[] };
+try { db = JSON.parse(localStorage.getItem(KEY) || JSON.stringify(db)); } catch(e){}
 let editId = null;
+let exportMonth = 'all';
 
 const $ = id => document.getElementById(id);
-const fv = id => $('f-' + id).value.trim();
-const ev = id => $('e-' + id).value.trim();
-const fnum = id => $('f-' + id).value.trim();
-const eNum = id => $('e-' + id).value.trim();
-const pad = n => String(n).padStart(2, '0');
-const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
-const toNum = v => { if (!v) return 0; const n = parseFloat(v); return isNaN(n) ? 0 : n; };
-const totalOf = r => toNum(r.traffic)+toNum(r.hotel)+toNum(r.parts)+toNum(r.entertain)+toNum(r.toll)+toNum(r.other);
-const dispVal = v => v || '';  // display raw value (formula or number)
-const fmt = v => v || '';
+const tv = id => $(id).value.trim();
+const pad = n => String(n).padStart(2,'0');
+const todayStr = () => { const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
 
-$('f-date').value = todayStr();
+// init dates
+['t-date','e-date','p-date'].forEach(id => $(id).value = todayStr());
 
-function save() {
-  try { localStorage.setItem(KEY, JSON.stringify(records)); } catch(e) {}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch(e){} }
+
+// ── tabs ──
+function sw(i) {
+  document.querySelectorAll('.tab').forEach((t,j) => t.classList.toggle('active', i===j));
+  document.querySelectorAll('.panel').forEach((p,j) => p.classList.toggle('active', i===j));
+  if (i===3) renderExport();
 }
 
-function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach((t, i) =>
-    t.classList.toggle('active', (i===0&&tab==='add')||(i===1&&tab==='records')));
-  document.querySelectorAll('.panel').forEach((p, i) =>
-    p.classList.toggle('active', (i===0&&tab==='add')||(i===1&&tab==='records')));
-  if (tab === 'records') renderRecords();
-}
-
-function submitRecord() {
-  const date = $('f-date').value;
-  if (!date) { showToast('⚠️ 请填写日期'); return; }
-  const rec = {
-    id: Date.now(), date,
-    route: fv('route'),
-    km: parseFloat($('f-km').value) || 0,
-    traffic: fnum('traffic'), hotel: fnum('hotel'),
-    parts: fnum('parts'), entertain: fnum('entertain'),
-    toll: fnum('toll'), other: fnum('other'),
-    note: fv('note')
-  };
-  records.push(rec);
-  records.sort((a, b) => a.date.localeCompare(b.date));
-  save();
-
-  ['route','km','traffic','hotel','parts','entertain','toll','other','note'].forEach(k => $('f-'+k).value = '');
-  $('f-date').value = todayStr();
-  showToast('✅ 记录已保存');
-}
-
-function filteredRecords() {
-  return filterMonth === 'all' ? records : records.filter(r => r.date && r.date.startsWith(filterMonth));
-}
-
-function renderRecords() {
-  const fr = filteredRecords();
-
-  // month buttons
-  const months = [...new Set(records.map(r => r.date ? r.date.slice(0,7) : null).filter(Boolean))].sort().reverse();
-  const tb = $('month-toolbar');
-  tb.innerHTML = '<span class="toolbar-label">月份：</span>';
-  const allBtn = document.createElement('button');
-  allBtn.className = 'btn-month' + (filterMonth==='all' ? ' active' : '');
-  allBtn.textContent = '全部';
-  allBtn.onclick = () => { filterMonth = 'all'; renderRecords(); };
-  tb.appendChild(allBtn);
-  months.forEach(m => {
-    const b = document.createElement('button');
-    b.className = 'btn-month' + (filterMonth===m ? ' active' : '');
-    b.textContent = m.replace('-', '年') + '月';
-    b.onclick = () => { filterMonth = m; renderRecords(); };
-    tb.appendChild(b);
+// ── chip groups ──
+function initChips(groupId, hiddenId) {
+  document.querySelectorAll(`#${groupId} .chip`).forEach(c => {
+    c.addEventListener('click', () => {
+      document.querySelectorAll(`#${groupId} .chip`).forEach(x => x.classList.remove('active'));
+      c.classList.add('active');
+      if (hiddenId) $(hiddenId).value = c.dataset.v;
+    });
   });
+}
+function setChip(groupId, val) {
+  document.querySelectorAll(`#${groupId} .chip`).forEach(c => {
+    c.classList.toggle('active', c.dataset.v === val);
+  });
+}
+function getChip(groupId) {
+  const a = document.querySelector(`#${groupId} .chip.active`);
+  return a ? a.dataset.v : '';
+}
+function clearChips(groupId) {
+  document.querySelectorAll(`#${groupId} .chip`).forEach(c => c.classList.remove('active'));
+}
 
-  // summary
-  const sr = $('summary-row');
-  if (!fr.length) { sr.textContent = '暂无数据'; }
-  else {
-    const keys = ['traffic','hotel','parts','entertain','toll','other'];
-    const tots = {};
-    keys.forEach(k => tots[k] = 0);
-    fr.forEach(r => keys.forEach(k => tots[k] += toNum(r[k])));
-    const grand = Object.values(tots).reduce((a,b) => a+b, 0);
-    const labels = {traffic:'交通',hotel:'住宿',parts:'配件',entertain:'招待',toll:'路桥',other:'其他'};
-    const parts = keys.filter(k=>tots[k]>0).map(k=>`${labels[k]} ${tots[k].toFixed(0)}`).join(' · ');
-    sr.innerHTML = `共 <b>${fr.length}</b> 条 &nbsp;|&nbsp; 合计 <b>¥${grand.toFixed(2)}</b>（含公式的格子不计入合计）${parts ? ' &nbsp;|&nbsp; ' + parts : ''}`;
+initChips('e-chips'); initChips('p-chips');
+initChips('ee-chips'); initChips('ep-chips');
+
+// ── TRIP ──
+function saveTrip() {
+  const date = $('t-date').value;
+  if (!date) { toast('⚠️ 请填写日期'); return; }
+  const r = {
+    id: Date.now(), date,
+    dept: tv('t-dept'), client: tv('t-client'), purpose: tv('t-purpose'),
+    route: tv('t-route'), km: tv('t-km'),
+    traffic: tv('t-traffic'), subsidy: tv('t-subsidy'),
+    hotel: tv('t-hotel'), entertain: tv('t-entertain'),
+    parts: tv('t-parts'), toll: tv('t-toll'), other: tv('t-other'),
+    note: tv('t-note')
+  };
+  db.trips.push(r);
+  db.trips.sort((a,b) => a.date.localeCompare(b.date));
+  save();
+  ['t-dept','t-client','t-purpose','t-route','t-km','t-traffic','t-subsidy',
+   't-hotel','t-entertain','t-parts','t-toll','t-other','t-note'].forEach(id => $(id).value='');
+  $('t-date').value = todayStr();
+  $('t-oil').value = '';
+  renderTrips(); toast('✅ 出差记录已保存');
+}
+
+function renderTrips() {
+  const list = $('trip-list'), empty = $('trip-empty');
+  if (!db.trips.length) { list.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  list.innerHTML = db.trips.map(r => `
+    <div class="rc">
+      <div class="rh">
+        <div class="rdate">${r.date}</div>
+        <div class="rtotal">${r.client||''} ${r.purpose?'· '+r.purpose:''}</div>
+      </div>
+      <div class="rb">
+        ${r.route?`<div class="rl">📍 ${r.route}</div>`:''}
+        ${r.km?`<div class="rm">公里数：${r.km} &nbsp;→&nbsp; 油费在Excel中自动计算</div>`:''}
+        <div class="rm">${[
+          r.traffic&&`交通 ${r.traffic}`, r.subsidy&&`补贴 ${r.subsidy}`,
+          r.hotel&&`住宿 ${r.hotel}`, r.entertain&&`招待 ${r.entertain}`,
+          r.parts&&`配件 ${r.parts}`, r.toll&&`路桥 ${r.toll}`, r.other&&`其他 ${r.other}`
+        ].filter(Boolean).join(' · ')||'无其他费用'}</div>
+        ${r.dept?`<div class="rm">所属：${r.dept}</div>`:''}
+        ${r.note?`<div class="rm">备注：${r.note}</div>`:''}
+      </div>
+      <div class="ract">
+        <button class="bedit" onclick="openEditTrip(${r.id})">✏️ 编辑</button>
+        <button class="bdel" onclick="delTrip(${r.id})">删除</button>
+      </div>
+    </div>`).join('');
+}
+
+function openEditTrip(id) {
+  editId = id;
+  const r = db.trips.find(x => x.id===id); if (!r) return;
+  $('et-date').value=r.date||''; $('et-dept').value=r.dept||'';
+  $('et-client').value=r.client||''; $('et-purpose').value=r.purpose||'';
+  $('et-route').value=r.route||''; $('et-km').value=r.km||'';
+  $('et-oil').value='Excel中自动计算';
+  $('et-traffic').value=r.traffic||''; $('et-subsidy').value=r.subsidy||'';
+  $('et-hotel').value=r.hotel||''; $('et-entertain').value=r.entertain||'';
+  $('et-parts').value=r.parts||''; $('et-toll').value=r.toll||'';
+  $('et-other').value=r.other||''; $('et-note').value=r.note||'';
+  $('mo-trip').classList.add('open');
+}
+function updateTrip() {
+  const idx = db.trips.findIndex(x => x.id===editId); if (idx<0) return;
+  db.trips[idx] = { ...db.trips[idx],
+    date:$('et-date').value, dept:tv('et-dept'), client:tv('et-client'),
+    purpose:tv('et-purpose'), route:tv('et-route'), km:tv('et-km'),
+    traffic:tv('et-traffic'), subsidy:tv('et-subsidy'), hotel:tv('et-hotel'),
+    entertain:tv('et-entertain'), parts:tv('et-parts'), toll:tv('et-toll'),
+    other:tv('et-other'), note:tv('et-note')
+  };
+  db.trips.sort((a,b)=>a.date.localeCompare(b.date));
+  save(); closeMo('mo-trip'); renderTrips(); toast('✅ 修改已保存');
+}
+function delTrip(id) {
+  if (!confirm('确定删除？')) return;
+  db.trips = db.trips.filter(x=>x.id!==id); save(); renderTrips();
+}
+
+// ── ENTERTAIN ──
+function saveEntertain() {
+  const date = $('e-date').value;
+  if (!date) { toast('⚠️ 请填写日期'); return; }
+  const r = {
+    id: Date.now(), date,
+    client: tv('e-client'), items: tv('e-items'),
+    ticket: getChip('e-chips'),
+    loc: tv('e-loc'), people: tv('e-people'), reason: tv('e-reason')
+  };
+  db.entertains.push(r);
+  db.entertains.sort((a,b)=>a.date.localeCompare(b.date));
+  save();
+  ['e-client','e-items','e-loc','e-people','e-reason'].forEach(id=>$(id).value='');
+  $('e-date').value=todayStr(); clearChips('e-chips');
+  renderEntertains(); toast('✅ 招待费记录已保存');
+}
+
+function renderEntertains() {
+  const list=$('ent-list'), empty=$('ent-empty');
+  if (!db.entertains.length) { list.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  list.innerHTML = db.entertains.map(r=>`
+    <div class="rc">
+      <div class="rh">
+        <div class="rdate o">${r.date}</div>
+        <div class="rtotal">${r.client||''}</div>
+      </div>
+      <div class="rb">
+        ${r.items?`<div class="rl">💰 ${r.items}</div>`:''}
+        ${r.ticket?`<div class="rm">票据：${r.ticket}</div>`:''}
+        ${r.loc?`<div class="rm">📍 ${r.loc}</div>`:''}
+        ${r.people?`<div class="rm">👥 ${r.people}</div>`:''}
+        ${r.reason?`<div class="rm">📝 ${r.reason}</div>`:''}
+      </div>
+      <div class="ract">
+        <button class="bedit" onclick="openEditEnt(${r.id})">✏️ 编辑</button>
+        <button class="bdel" onclick="delEnt(${r.id})">删除</button>
+      </div>
+    </div>`).join('');
+}
+
+function openEditEnt(id) {
+  editId=id;
+  const r=db.entertains.find(x=>x.id===id); if(!r) return;
+  $('ee-date').value=r.date||''; $('ee-client').value=r.client||'';
+  $('ee-items').value=r.items||''; setChip('ee-chips',r.ticket||'');
+  $('ee-loc').value=r.loc||''; $('ee-people').value=r.people||'';
+  $('ee-reason').value=r.reason||'';
+  $('mo-ent').classList.add('open');
+}
+function updateEntertain() {
+  const idx=db.entertains.findIndex(x=>x.id===editId); if(idx<0) return;
+  db.entertains[idx]={...db.entertains[idx],
+    date:$('ee-date').value, client:tv('ee-client'), items:tv('ee-items'),
+    ticket:getChip('ee-chips'), loc:tv('ee-loc'),
+    people:tv('ee-people'), reason:tv('ee-reason')
+  };
+  db.entertains.sort((a,b)=>a.date.localeCompare(b.date));
+  save(); closeMo('mo-ent'); renderEntertains(); toast('✅ 修改已保存');
+}
+function delEnt(id) {
+  if(!confirm('确定删除？')) return;
+  db.entertains=db.entertains.filter(x=>x.id!==id); save(); renderEntertains();
+}
+
+// ── PARTS ──
+function savePart() {
+  const date=$('p-date').value;
+  if(!date){toast('⚠️ 请填写日期');return;}
+  const r={
+    id:Date.now(), date,
+    client:tv('p-client'), name:tv('p-name'),
+    amount:tv('p-amount'), ticket:getChip('p-chips')
+  };
+  db.parts.push(r);
+  db.parts.sort((a,b)=>a.date.localeCompare(b.date));
+  save();
+  ['p-client','p-name','p-amount'].forEach(id=>$(id).value='');
+  $('p-date').value=todayStr(); clearChips('p-chips');
+  renderParts(); toast('✅ 配件费记录已保存');
+}
+
+function renderParts() {
+  const list=$('part-list'), empty=$('part-empty');
+  if(!db.parts.length){list.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  list.innerHTML=db.parts.map(r=>`
+    <div class="rc">
+      <div class="rh">
+        <div class="rdate v">${r.date}</div>
+        <div class="rtotal">${r.client||''}</div>
+      </div>
+      <div class="rb">
+        ${r.name?`<div class="rl">🔩 ${r.name}</div>`:''}
+        ${r.amount?`<div class="rm">金额：${r.amount}</div>`:''}
+        ${r.ticket?`<div class="rm">票据：${r.ticket}</div>`:''}
+      </div>
+      <div class="ract">
+        <button class="bedit" onclick="openEditPart(${r.id})">✏️ 编辑</button>
+        <button class="bdel" onclick="delPart(${r.id})">删除</button>
+      </div>
+    </div>`).join('');
+}
+
+function openEditPart(id) {
+  editId=id;
+  const r=db.parts.find(x=>x.id===id); if(!r) return;
+  $('ep-date').value=r.date||''; $('ep-client').value=r.client||'';
+  $('ep-name').value=r.name||''; $('ep-amount').value=r.amount||'';
+  setChip('ep-chips',r.ticket||'');
+  $('mo-part').classList.add('open');
+}
+function updatePart() {
+  const idx=db.parts.findIndex(x=>x.id===editId); if(idx<0) return;
+  db.parts[idx]={...db.parts[idx],
+    date:$('ep-date').value, client:tv('ep-client'),
+    name:tv('ep-name'), amount:tv('ep-amount'), ticket:getChip('ep-chips')
+  };
+  db.parts.sort((a,b)=>a.date.localeCompare(b.date));
+  save(); closeMo('mo-part'); renderParts(); toast('✅ 修改已保存');
+}
+function delPart(id) {
+  if(!confirm('确定删除？')) return;
+  db.parts=db.parts.filter(x=>x.id!==id); save(); renderParts();
+}
+
+// ── EXPORT ──
+function allMonths() {
+  const all=[...db.trips,...db.entertains,...db.parts];
+  return [...new Set(all.map(r=>r.date?r.date.slice(0,7):null).filter(Boolean))].sort().reverse();
+}
+
+function renderExport() {
+  const months = allMonths();
+  const row = $('month-row');
+  row.innerHTML='';
+  const allBtn=document.createElement('button');
+  allBtn.className='mbtn'+(exportMonth==='all'?' active':'');
+  allBtn.textContent='全部'; allBtn.onclick=()=>{exportMonth='all';renderExport();};
+  row.appendChild(allBtn);
+  months.forEach(m=>{
+    const b=document.createElement('button');
+    b.className='mbtn'+(exportMonth===m?' active':'');
+    b.textContent=m.replace('-','年')+'月';
+    b.onclick=()=>{exportMonth=m;renderExport();};
+    row.appendChild(b);
+  });
+  const fil=r=>exportMonth==='all'||r.date.startsWith(exportMonth);
+  $('s0').textContent=db.trips.filter(fil).length;
+  $('s1').textContent=db.entertains.filter(fil).length;
+  $('s2').textContent=db.parts.filter(fil).length;
+}
+
+function exportExcel() {
+  const fil=r=>exportMonth==='all'||r.date.startsWith(exportMonth);
+  const trips=db.trips.filter(fil);
+  const ents=db.entertains.filter(fil);
+  const parts=db.parts.filter(fil);
+
+  if (!trips.length && !ents.length && !parts.length) {
+    toast('没有可导出的记录'); return;
   }
 
-  const list = $('record-list');
-  const empty = $('empty-state');
-  if (!fr.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
-  empty.style.display = 'none';
+  const wb = XLSX.utils.book_new();
 
-  const amtLabels = {traffic:'交通',hotel:'住宿',parts:'配件',entertain:'招待',toll:'路桥费',other:'其他'};
-  list.innerHTML = fr.map(r => {
-    const t = totalOf(r);
-    const amtParts = Object.keys(amtLabels)
-      .filter(k => r[k])
-      .map(k => `${amtLabels[k]} <b>${r[k]}</b>`)
-      .join(' &nbsp;·&nbsp; ');
-    return `<div class="rec-card">
-      <div class="rec-header">
-        <div class="rec-date">${r.date}</div>
-        <div class="rec-total">${t ? '¥' + t.toFixed(2) : ''}</div>
-      </div>
-      <div class="rec-body">
-        ${r.route ? `<div class="rec-route">${r.route}</div>` : ''}
-        ${r.km ? `<div class="rec-km">公里数：${r.km} km</div>` : ''}
-        <div class="rec-amts">${amtParts || '<span style="color:#bbb">无费用明细</span>'}</div>
-        ${r.note ? `<div class="rec-note">备注：${r.note}</div>` : ''}
-      </div>
-      <div class="rec-actions">
-        <button class="btn-edit" onclick="openEdit(${r.id})">✏️ 编辑</button>
-        <button class="btn-del" onclick="delRecord(${r.id})">删除</button>
-      </div>
-    </div>`;
-  }).join('');
-}
+  // ── Sheet1: 出差费用报销 ──
+  const sh1 = XLSX.utils.aoa_to_sheet([]);
+  // Title row
+  XLSX.utils.sheet_add_aoa(sh1,[['科唯费用报销表格']], {origin:'A1'});
+  // Header row
+  const h1 = ['日期','客户','出差目的','出差行程','费用所属','公里数','油费','交通','补贴','住宿','招待','配件','路桥费','其他','备注'];
+  XLSX.utils.sheet_add_aoa(sh1,[h1],{origin:'A2'});
+  // Data rows - km as formula, oil = km*1.35 as formula
+  trips.forEach((r,i) => {
+    const row = i+3; // Excel row number (1-indexed, row1=title, row2=header)
+    const kmCell = `F${row}`;
+    const oilFormula = `=${kmCell}*1.35`;
+    const kmVal = r.km || '';
 
-const AMT_COLS = ['traffic','hotel','parts','entertain','toll','other'];
-
-function copyCol(col) {
-  const fr = filteredRecords();
-  if (!fr.length) { showToast('没有可复制的记录'); return; }
-  const lines = fr.map(r => {
-    if (AMT_COLS.includes(col)) return r[col] ? r[col].toFixed(2) : '';
-    if (col === 'km') return r.km ? String(r.km) : '';
-    return r[col] || '';
+    XLSX.utils.sheet_add_aoa(sh1,[[
+      r.date, r.client, r.purpose, r.route, r.dept,
+      kmVal,           // F: 公里数 (raw formula string like =10+20)
+      oilFormula,      // G: 油费 = F*1.35
+      r.traffic||'', r.subsidy||'', r.hotel||'',
+      r.entertain||'', r.parts||'', r.toll||'', r.other||'',
+      r.note||''
+    ]],{origin:`A${row}`});
   });
-  doCopy(lines.join('\n'));
-  showToast('✅ 已复制，粘贴到Excel对应列');
-}
 
-function copyAll() {
-  const fr = filteredRecords();
-  if (!fr.length) { showToast('没有可复制的记录'); return; }
-  const header = '日期\t出差行程\t公里数\t交通\t住宿\t配件\t招待\t路桥费\t其他\t备注';
-  const rows = fr.map(r =>
-    [r.date, r.route, r.km||'',
-     fmt(r.traffic), fmt(r.hotel), fmt(r.parts),
-     fmt(r.entertain), fmt(r.toll), fmt(r.other), r.note||''].join('\t')
-  );
-  doCopy([header, ...rows].join('\n'));
-  showToast('✅ 已复制全表，粘贴到Excel即可');
-}
-
-function doCopy(text) {
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).catch(() => legacyCopy(text));
-  } else legacyCopy(text);
-}
-function legacyCopy(text) {
-  const ta = document.createElement('textarea');
-  ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
-  document.body.appendChild(ta); ta.focus(); ta.select();
-  try { document.execCommand('copy'); } catch(e) {}
-  document.body.removeChild(ta);
-}
-
-function delRecord(id) {
-  if (!confirm('确定删除这条记录？')) return;
-  records = records.filter(r => r.id !== id);
-  save(); renderRecords();
-}
-
-function openEdit(id) {
-  editId = id;
-  const r = records.find(x => x.id === id);
-  if (!r) return;
-  $('e-date').value = r.date || '';
-  $('e-km').value = r.km || '';
-  $('e-route').value = r.route || '';
-  $('e-traffic').value = r.traffic || '';
-  $('e-hotel').value = r.hotel || '';
-  $('e-parts').value = r.parts || '';
-  $('e-entertain').value = r.entertain || '';
-  $('e-toll').value = r.toll || '';
-  $('e-other').value = r.other || '';
-  $('e-note').value = r.note || '';
-  $('modal').classList.add('open');
-}
-function closeModal() { $('modal').classList.remove('open'); editId = null; }
-function saveEdit() {
-  if (!editId) return;
-  const idx = records.findIndex(r => r.id === editId);
-  if (idx < 0) return;
-  records[idx] = {
-    ...records[idx],
-    date: $('e-date').value,
-    route: ev('route'),
-    km: parseFloat($('e-km').value) || 0,
-    traffic: eNum('traffic'), hotel: eNum('hotel'),
-    parts: eNum('parts'), entertain: eNum('entertain'),
-    toll: eNum('toll'), other: eNum('other'),
-    note: ev('note')
-  };
-  records.sort((a, b) => a.date.localeCompare(b.date));
-  save(); closeModal(); renderRecords();
-  showToast('✅ 修改已保存');
-}
-
-let toastT;
-function showToast(msg) {
-  const t = $('toast'); t.textContent = msg; t.classList.add('show');
-  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2400);
-}
-
-renderRecords();
-
-function downloadExcel() {
-  const fr = filteredRecords();
-  if (!fr.length) { showToast('没有可导出的记录'); return; }
-
-  const headers = ['日期','出差行程','公里数','交通','住宿','配件','招待','路桥费','其他','备注'];
-  const rows = fr.map(r => [
-    r.date, r.route, r.km||'',
-    r.traffic||'', r.hotel||'', r.parts||'',
-    r.entertain||'', r.toll||'', r.other||'',
-    r.note||''
-  ]);
-
-  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-
-  // Column widths
-  ws['!cols'] = [
-    {wch:12},{wch:30},{wch:8},{wch:10},{wch:10},
+  sh1['!cols']=[
+    {wch:12},{wch:10},{wch:10},{wch:30},{wch:10},
+    {wch:10},{wch:10},{wch:10},{wch:10},{wch:10},
     {wch:10},{wch:10},{wch:10},{wch:10},{wch:20}
   ];
+  XLSX.utils.book_append_sheet(wb, sh1, '报销总表');
 
-  // Style header row bold
-  headers.forEach((_, i) => {
-    const cell = ws[XLSX.utils.encode_cell({r:0, c:i})];
-    if (cell) cell.s = { font: { bold: true } };
+  // ── Sheet2: 娱乐及招待费明细 ──
+  const sh2 = XLSX.utils.aoa_to_sheet([]);
+  ents.forEach((r,i) => {
+    const base = i*8 + 1;
+    XLSX.utils.sheet_add_aoa(sh2,[
+      ['娱乐及招待费明细表格'],
+      ['客户名称、消费项目和金额', r.client ? `${r.client}  ${r.items||''}` : r.items||''],
+      ['票据类型', r.ticket||''],
+      ['具体时间和地点', r.loc||''],
+      ['参与人员（包括同事）', r.people||''],
+      ['具体原因和目的', r.reason||''],
+      [],
+    ],{origin:{r:base-1,c:0}});
   });
+  sh2['!cols']=[{wch:22},{wch:40}];
+  XLSX.utils.book_append_sheet(wb, sh2, '娱乐及招待费明细');
 
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, '报销记录');
+  // ── Sheet3: 配件费明细 ──
+  const sh3 = XLSX.utils.aoa_to_sheet([]);
+  parts.forEach((r,i) => {
+    const base = i*7 + 1;
+    XLSX.utils.sheet_add_aoa(sh3,[
+      ['配件费明细表格'],
+      ['客户名称', r.client||''],
+      ['配件名称', r.name||''],
+      ['金额', r.amount||''],
+      ['票据类型', r.ticket||''],
+      [],
+    ],{origin:{r:base-1,c:0}});
+  });
+  sh3['!cols']=[{wch:16},{wch:40}];
+  XLSX.utils.book_append_sheet(wb, sh3, '配件费明细');
 
-  const month = filterMonth === 'all' ? '全部' : filterMonth;
-  XLSX.writeFile(wb, `报销记录_${month}.xlsx`);
-  showToast('✅ Excel已下载');
+  const label = exportMonth==='all' ? '全部' : exportMonth;
+  XLSX.writeFile(wb, `报销表_${label}.xlsx`);
+  toast('✅ 报销Excel已下载');
 }
 
+// ── modal / toast ──
+function closeMo(id) { $(id).classList.remove('open'); editId=null; }
+let toastT;
+function toast(msg) {
+  const t=$('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// init render
+renderTrips(); renderEntertains(); renderParts();
 </script>
 </body>
 </html>
