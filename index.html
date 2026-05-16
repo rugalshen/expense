@@ -102,6 +102,53 @@ header p{font-size:11px;opacity:.72;margin-top:2px}
 
 .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:#222;color:#fff;padding:10px 22px;border-radius:24px;font-size:13px;font-weight:600;z-index:999;transition:transform .3s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.25)}
 .toast.show{transform:translateX(-50%) translateY(0)}
+
+/* ── 数字键盘 ── */
+.numpad-wrap {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 900;
+  background: #d1d5db;
+  padding: 6px 4px 12px;
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.18);
+  transform: translateY(100%);
+  transition: transform 0.22s cubic-bezier(.4,0,.2,1);
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+}
+.numpad-wrap.open { transform: translateY(0); }
+.numpad-target-label {
+  font-size: 11px; font-weight: 700; color: #555;
+  text-align: center; padding: 4px 0 6px;
+  text-transform: uppercase; letter-spacing: .5px;
+}
+.numpad-display {
+  background: #fff; border-radius: 8px; margin: 0 4px 6px;
+  padding: 8px 14px; font-size: 18px; font-weight: 600;
+  color: var(--primary); min-height: 38px; word-break: break-all;
+}
+.numpad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px; padding: 0 4px;
+}
+.nk {
+  background: #fff; border: none; border-radius: 10px;
+  font-family: inherit; font-size: 18px; font-weight: 600;
+  color: var(--text); padding: 14px 0; cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  transition: background .1s, transform .08s;
+  text-align: center;
+}
+.nk:active { background: #e5e7eb; transform: scale(.95); }
+.nk.sym { font-size: 16px; color: var(--primary); background: #e8f0fb; }
+.nk.sym:active { background: #bfdbfe; }
+.nk.del { background: #e5e7eb; font-size: 16px; }
+.nk.del:active { background: #d1d5db; }
+.nk.done { background: var(--primary); color: #fff; font-size: 14px; font-weight: 700; }
+.nk.done:active { background: #134080; }
+.nk.zero { grid-column: span 1; }
+.numpad-row-sym {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 5px; padding: 5px 4px 0;
+}
 </style>
 </head>
 <body>
@@ -330,6 +377,32 @@ header p{font-size:11px;opacity:.72;margin-top:2px}
   </div>
 </div>
 
+
+<!-- ── 数字键盘 ── -->
+<div class="numpad-wrap" id="numpad">
+  <div class="numpad-target-label" id="np-label">输入金额</div>
+  <div class="numpad-display" id="np-display">—</div>
+  <div class="numpad-grid">
+    <button class="nk" onclick="nk('7')">7</button>
+    <button class="nk" onclick="nk('8')">8</button>
+    <button class="nk" onclick="nk('9')">9</button>
+    <button class="nk" onclick="nk('4')">4</button>
+    <button class="nk" onclick="nk('5')">5</button>
+    <button class="nk" onclick="nk('6')">6</button>
+    <button class="nk" onclick="nk('1')">1</button>
+    <button class="nk" onclick="nk('2')">2</button>
+    <button class="nk" onclick="nk('3')">3</button>
+    <button class="nk" onclick="nk('.')">.</button>
+    <button class="nk zero" onclick="nk('0')">0</button>
+    <button class="nk del" onclick="nkDel()">⌫</button>
+  </div>
+  <div class="numpad-row-sym">
+    <button class="nk sym" onclick="nk('=')">＝</button>
+    <button class="nk sym" onclick="nk('+')">＋</button>
+    <button class="nk done" onclick="nkDone()">完成 ✓</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -338,6 +411,52 @@ let db = { trips:[], entertains:[], parts:[] };
 try { db = JSON.parse(localStorage.getItem(KEY) || JSON.stringify(db)); } catch(e){}
 let editId = null;
 let exportMonth = 'all';
+
+
+// ── 数据迁移：从旧key读取数据 ──
+(function migrate() {
+  const oldKeys = ['kewei_expense_v3', 'kewei_expense_v2', 'kewei_expense_v1', 'expense_records_v2', 'expense_records_v1'];
+  let migrated = false;
+  oldKeys.forEach(k => {
+    try {
+      const old = JSON.parse(localStorage.getItem(k) || 'null');
+      if (!old) return;
+      // old format: flat array of records
+      if (Array.isArray(old)) {
+        old.forEach(r => {
+          if (!db.trips.find(x => x.id === r.id)) {
+            db.trips.push({
+              id: r.id, date: r.date||'',
+              dept: r.dept||'', client: r.client||'', purpose: r.purpose||'',
+              route: r.route||'', km: r.km ? String(r.km) : '',
+              traffic: r.traffic||'', subsidy: r.subsidy||'',
+              hotel: r.hotel||'', entertain: r.entertain||'',
+              parts: r.parts||'', toll: r.toll||'', other: r.other||'',
+              note: r.note||''
+            });
+            migrated = true;
+          }
+        });
+      }
+      // new format with trips/entertains/parts
+      if (old.trips) {
+        old.trips.forEach(r => { if (!db.trips.find(x=>x.id===r.id)) { db.trips.push(r); migrated=true; }});
+      }
+      if (old.entertains) {
+        old.entertains.forEach(r => { if (!db.entertains.find(x=>x.id===r.id)) { db.entertains.push(r); migrated=true; }});
+      }
+      if (old.parts) {
+        old.parts.forEach(r => { if (!db.parts.find(x=>x.id===r.id)) { db.parts.push(r); migrated=true; }});
+      }
+    } catch(e) {}
+  });
+  if (migrated) {
+    db.trips.sort((a,b)=>a.date.localeCompare(b.date));
+    db.entertains.sort((a,b)=>a.date.localeCompare(b.date));
+    db.parts.sort((a,b)=>a.date.localeCompare(b.date));
+    save();
+  }
+})();
 
 const $ = id => document.getElementById(id);
 const tv = id => $(id).value.trim();
@@ -705,6 +824,70 @@ function toast(msg) {
   const t=$('toast'); t.textContent=msg; t.classList.add('show');
   clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2500);
 }
+
+
+// ── 数字键盘逻辑 ──
+let npTarget = null; // current input element
+let npVal = '';
+
+const NP_FIELDS = [
+  't-km','t-traffic','t-subsidy','t-hotel','t-entertain','t-parts','t-toll','t-other',
+  'et-km','et-traffic','et-subsidy','et-hotel','et-entertain','et-parts','et-toll','et-other',
+  'p-amount','ep-amount'
+];
+
+function initNumpad() {
+  NP_FIELDS.forEach(id => {
+    const el = $(id);
+    if (!el) return;
+    el.readOnly = true; // prevent system keyboard
+    el.addEventListener('click', () => openNumpad(el));
+    el.addEventListener('focus', () => openNumpad(el));
+  });
+  // close on overlay tap
+  document.addEventListener('click', e => {
+    if (npTarget && !e.target.closest('.numpad-wrap') && !NP_FIELDS.includes(e.target.id)) {
+      closeNumpad();
+    }
+  });
+}
+
+function openNumpad(el) {
+  npTarget = el;
+  npVal = el.value || '';
+  $('np-display').textContent = npVal || '—';
+  // label from field's label element
+  const label = el.closest('.field,.af') && el.closest('.field,.af').querySelector('label');
+  $('np-label').textContent = label ? label.textContent : '输入数值';
+  $('numpad').classList.add('open');
+}
+
+function closeNumpad() {
+  $('numpad').classList.remove('open');
+  npTarget = null;
+}
+
+function nk(ch) {
+  // = only at start
+  if (ch === '=' && npVal.length > 0) return;
+  // + only after a digit or .
+  if (ch === '+' && npVal.length === 0) return;
+  npVal += ch;
+  $('np-display').textContent = npVal;
+  if (npTarget) npTarget.value = npVal;
+}
+
+function nkDel() {
+  npVal = npVal.slice(0, -1);
+  $('np-display').textContent = npVal || '—';
+  if (npTarget) npTarget.value = npVal;
+}
+
+function nkDone() {
+  closeNumpad();
+}
+
+initNumpad();
 
 // init render
 renderTrips(); renderEntertains(); renderParts();
