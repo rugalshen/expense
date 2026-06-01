@@ -510,21 +510,12 @@ try { db = JSON.parse(localStorage.getItem(KEY) || JSON.stringify(db)); } catch(
 let editId = null;
 let exportMonth = 'all';
 
-// 记住每个分组的展开/折叠状态（按 tab 区分），避免重新渲染后塌陷
+// 记住每个分组的展开/折叠状态（按 tab 区分），重新渲染后不塌陷
 const groupOpen = {};
-function gKey(scope, id){ return scope + '|' + id; }
-function isOpen(scope, id, def){
-  const k = gKey(scope, id);
-  return (k in groupOpen) ? groupOpen[k] : def;
-}
-window.toggleGroup = function(el, scope, id){
-  groupOpen[gKey(scope, id)] = el.open;
-};
 
 // 把记录按 年 → 月 折叠分组渲染。
 // scope: 'trip'/'ent'/'part'（用于区分折叠状态）
 // records: 已按日期排序的数组
-// dateClass: 日期颜色样式（''/'o'/'v'，仅用于月标题小圆点对齐配色）
 // cardFn: (record) => 单条记录的 HTML 字符串
 function renderGrouped(scope, records, cardFn){
   // 年(YYYY) -> 月(YYYY-MM) -> 记录[]
@@ -542,15 +533,17 @@ function renderGrouped(scope, records, cardFn){
     const months = years[y];
     const mKeys = Object.keys(months).sort().reverse();
     const yCount = mKeys.reduce((s,m)=>s+months[m].length,0);
-    // 默认：最新的年份展开，其余折叠
-    const yOpen = isOpen(scope, 'y:'+y, yi===0);
+    const yk = scope + '|y:' + y;
+    // 默认：最新的年份展开，其余折叠；之前手动改过则沿用
+    const yOpen = (yk in groupOpen) ? groupOpen[yk] : (yi===0);
     const monthsHtml = mKeys.map((m, mi) => {
       const recs = months[m];
       const mLabel = (+m.slice(5,7)) + ' 月';
+      const mk = scope + '|m:' + m;
       // 默认：最新年份里的最新月份展开，其余折叠
-      const mOpen = isOpen(scope, 'm:'+m, yi===0 && mi===0);
+      const mOpen = (mk in groupOpen) ? groupOpen[mk] : (yi===0 && mi===0);
       return `
-        <details class="mo" ${mOpen?'open':''} ontoggle="toggleGroup(this,'${scope}','m:${m}')">
+        <details class="mo" data-k="${mk}" ${mOpen?'open':''}>
           <summary>
             <span class="glabel"><span class="arw">▶</span>${mLabel}</span>
             <span class="cnt">${recs.length} 条</span>
@@ -559,7 +552,7 @@ function renderGrouped(scope, records, cardFn){
         </details>`;
     }).join('');
     return `
-      <details class="yr" ${yOpen?'open':''} ontoggle="toggleGroup(this,'${scope}','y:${y}')">
+      <details class="yr" data-k="${yk}" ${yOpen?'open':''}>
         <summary>
           <span class="glabel"><span class="arw">▶</span>${y} 年</span>
           <span class="cnt">${yCount} 条</span>
@@ -568,6 +561,14 @@ function renderGrouped(scope, records, cardFn){
       </details>`;
   }).join('');
 }
+
+// 用事件委托统一记录展开/折叠状态，避免内联 ontoggle 在嵌套时互相干扰
+document.addEventListener('toggle', function(e){
+  const d = e.target;
+  if (d && d.tagName === 'DETAILS' && d.dataset && d.dataset.k){
+    groupOpen[d.dataset.k] = d.open;
+  }
+}, true);
 
 // 单条记录卡片（与原来的卡片 HTML 一致，抽成函数复用）
 function tripCard(r){
