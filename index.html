@@ -122,17 +122,17 @@ header p{font-size:11px;opacity:.72;margin-top:2px}
 .empty-icon{font-size:34px;margin-bottom:8px}
 
 /* collapsible year/month groups */
-.yr{border-radius:12px;overflow:hidden;background:var(--card);box-shadow:var(--shadow)}
-.yr>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;font-size:16px;font-weight:800;color:var(--primary);user-select:none}
+.yr{border-radius:12px;background:var(--card);box-shadow:var(--shadow)}
+.yr>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;font-size:16px;font-weight:800;color:var(--primary);user-select:none;border-radius:12px}
 .yr>summary::-webkit-details-marker{display:none}
 .arw{display:inline-block;font-size:12px;color:var(--muted);transition:transform .2s}
 .yr[open]>summary .arw{transform:rotate(90deg)}
 .cnt{font-size:12px;font-weight:600;color:var(--muted)}
 .yr-body{padding:0 10px 10px;display:flex;flex-direction:column;gap:8px}
-.mo{border-radius:10px;overflow:hidden;background:var(--bg);border:1px solid var(--border)}
-.mo>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:9px 12px;font-size:14px;font-weight:700;color:var(--text);user-select:none}
-.mo>summary::-webkit-details-marker{display:none}
-.mo[open]>summary .arw{transform:rotate(90deg)}
+.mgrp{border-radius:10px;background:var(--bg);border:1px solid var(--border)}
+.mgrp>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:9px 12px;font-size:14px;font-weight:700;color:var(--text);user-select:none;border-radius:10px}
+.mgrp>summary::-webkit-details-marker{display:none}
+.mgrp[open]>summary .arw{transform:rotate(90deg)}
 .mo-body{padding:8px 8px 10px;display:flex;flex-direction:column;gap:10px}
 .glabel{display:flex;align-items:center;gap:7px}
 
@@ -543,7 +543,7 @@ function renderGrouped(scope, records, cardFn){
       // 默认：最新年份里的最新月份展开，其余折叠
       const mOpen = (mk in groupOpen) ? groupOpen[mk] : (yi===0 && mi===0);
       return `
-        <details class="mo" data-k="${mk}" ${mOpen?'open':''}>
+        <details class="mgrp" data-k="${mk}" ${mOpen?'open':''}>
           <summary>
             <span class="glabel"><span class="arw">▶</span>${mLabel}</span>
             <span class="cnt">${recs.length} 条</span>
