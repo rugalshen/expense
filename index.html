@@ -121,6 +121,21 @@ header p{font-size:11px;opacity:.72;margin-top:2px}
 .empty{text-align:center;padding:36px 20px;color:var(--muted);font-size:14px}
 .empty-icon{font-size:34px;margin-bottom:8px}
 
+/* collapsible year/month groups */
+.yr{border-radius:12px;overflow:hidden;background:var(--card);box-shadow:var(--shadow)}
+.yr>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;font-size:16px;font-weight:800;color:var(--primary);user-select:none}
+.yr>summary::-webkit-details-marker{display:none}
+.arw{display:inline-block;font-size:12px;color:var(--muted);transition:transform .2s}
+.yr[open]>summary .arw{transform:rotate(90deg)}
+.cnt{font-size:12px;font-weight:600;color:var(--muted)}
+.yr-body{padding:0 10px 10px;display:flex;flex-direction:column;gap:8px}
+.mo{border-radius:10px;overflow:hidden;background:var(--bg);border:1px solid var(--border)}
+.mo>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:9px 12px;font-size:14px;font-weight:700;color:var(--text);user-select:none}
+.mo>summary::-webkit-details-marker{display:none}
+.mo[open]>summary .arw{transform:rotate(90deg)}
+.mo-body{padding:8px 8px 10px;display:flex;flex-direction:column;gap:10px}
+.glabel{display:flex;align-items:center;gap:7px}
+
 /* export */
 .exp-card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:18px 16px;margin-bottom:14px}
 .exp-card h2{font-size:14px;font-weight:700;margin-bottom:6px}
@@ -495,6 +510,129 @@ try { db = JSON.parse(localStorage.getItem(KEY) || JSON.stringify(db)); } catch(
 let editId = null;
 let exportMonth = 'all';
 
+// 记住每个分组的展开/折叠状态（按 tab 区分），避免重新渲染后塌陷
+const groupOpen = {};
+function gKey(scope, id){ return scope + '|' + id; }
+function isOpen(scope, id, def){
+  const k = gKey(scope, id);
+  return (k in groupOpen) ? groupOpen[k] : def;
+}
+window.toggleGroup = function(el, scope, id){
+  groupOpen[gKey(scope, id)] = el.open;
+};
+
+// 把记录按 年 → 月 折叠分组渲染。
+// scope: 'trip'/'ent'/'part'（用于区分折叠状态）
+// records: 已按日期排序的数组
+// dateClass: 日期颜色样式（''/'o'/'v'，仅用于月标题小圆点对齐配色）
+// cardFn: (record) => 单条记录的 HTML 字符串
+function renderGrouped(scope, records, cardFn){
+  // 年(YYYY) -> 月(YYYY-MM) -> 记录[]
+  const years = {};
+  records.forEach(r => {
+    if (!r.date) return;
+    const y = r.date.slice(0,4);
+    const m = r.date.slice(0,7);
+    (years[y] = years[y] || {});
+    (years[y][m] = years[y][m] || []).push(r);
+  });
+  // 年份倒序（新的在上）
+  const yKeys = Object.keys(years).sort().reverse();
+  return yKeys.map((y, yi) => {
+    const months = years[y];
+    const mKeys = Object.keys(months).sort().reverse();
+    const yCount = mKeys.reduce((s,m)=>s+months[m].length,0);
+    // 默认：最新的年份展开，其余折叠
+    const yOpen = isOpen(scope, 'y:'+y, yi===0);
+    const monthsHtml = mKeys.map((m, mi) => {
+      const recs = months[m];
+      const mLabel = (+m.slice(5,7)) + ' 月';
+      // 默认：最新年份里的最新月份展开，其余折叠
+      const mOpen = isOpen(scope, 'm:'+m, yi===0 && mi===0);
+      return `
+        <details class="mo" ${mOpen?'open':''} ontoggle="toggleGroup(this,'${scope}','m:${m}')">
+          <summary>
+            <span class="glabel"><span class="arw">▶</span>${mLabel}</span>
+            <span class="cnt">${recs.length} 条</span>
+          </summary>
+          <div class="mo-body">${recs.map(cardFn).join('')}</div>
+        </details>`;
+    }).join('');
+    return `
+      <details class="yr" ${yOpen?'open':''} ontoggle="toggleGroup(this,'${scope}','y:${y}')">
+        <summary>
+          <span class="glabel"><span class="arw">▶</span>${y} 年</span>
+          <span class="cnt">${yCount} 条</span>
+        </summary>
+        <div class="yr-body">${monthsHtml}</div>
+      </details>`;
+  }).join('');
+}
+
+// 单条记录卡片（与原来的卡片 HTML 一致，抽成函数复用）
+function tripCard(r){
+  return `
+    <div class="rc">
+      <div class="rh">
+        <div class="rdate">${r.date}</div>
+        <div class="rtotal">${r.client||''} ${r.purpose?'· '+r.purpose:''}</div>
+      </div>
+      <div class="rb">
+        ${r.route?`<div class="rl">📍 ${r.route}</div>`:''}
+        ${r.km?`<div class="rm">公里数：${r.km} &nbsp;→&nbsp; 油费在Excel中自动计算</div>`:''}
+        <div class="rm">${[
+          r.traffic&&`交通 ${r.traffic}`, r.subsidy&&`补贴 ${r.subsidy}`,
+          r.hotel&&`住宿 ${r.hotel}`, r.entertain&&`招待 ${r.entertain}`,
+          r.parts&&`配件 ${r.parts}`, r.toll&&`路桥 ${r.toll}`, r.other&&`其他 ${r.other}`
+        ].filter(Boolean).join(' · ')||'无其他费用'}</div>
+        ${r.dept?`<div class="rm">所属：${r.dept}</div>`:''}
+        ${r.note?`<div class="rm">备注：${r.note}</div>`:''}
+      </div>
+      <div class="ract">
+        <button class="bedit" onclick="openEditTrip(${r.id})">✏️ 编辑</button>
+        <button class="bdel" onclick="delTrip(${r.id})">删除</button>
+      </div>
+    </div>`;
+}
+function entCard(r){
+  return `
+    <div class="rc">
+      <div class="rh">
+        <div class="rdate o">${r.date}</div>
+        <div class="rtotal">${r.client||''}</div>
+      </div>
+      <div class="rb">
+        ${r.items?`<div class="rl">💰 ${r.items}</div>`:''}
+        ${r.ticket?`<div class="rm">票据：${r.ticket}</div>`:''}
+        ${r.loc?`<div class="rm">📍 ${r.loc}</div>`:''}
+        ${r.people?`<div class="rm">👥 ${r.people}</div>`:''}
+        ${r.reason?`<div class="rm">📝 ${r.reason}</div>`:''}
+      </div>
+      <div class="ract">
+        <button class="bedit" onclick="openEditEnt(${r.id})">✏️ 编辑</button>
+        <button class="bdel" onclick="delEnt(${r.id})">删除</button>
+      </div>
+    </div>`;
+}
+function partCard(r){
+  return `
+    <div class="rc">
+      <div class="rh">
+        <div class="rdate v">${r.date}</div>
+        <div class="rtotal">${r.client||''}</div>
+      </div>
+      <div class="rb">
+        ${r.name?`<div class="rl">🔩 ${r.name}</div>`:''}
+        ${r.amount?`<div class="rm">金额：${r.amount}</div>`:''}
+        ${r.ticket?`<div class="rm">票据：${r.ticket}</div>`:''}
+      </div>
+      <div class="ract">
+        <button class="bedit" onclick="openEditPart(${r.id})">✏️ 编辑</button>
+        <button class="bdel" onclick="delPart(${r.id})">删除</button>
+      </div>
+    </div>`;
+}
+
 
 // ── 数据迁移：从旧key读取数据 ──
 (function migrate() {
@@ -616,28 +754,7 @@ function renderTrips() {
   const list = $('trip-list'), empty = $('trip-empty');
   if (!db.trips.length) { list.innerHTML=''; empty.style.display='block'; return; }
   empty.style.display='none';
-  list.innerHTML = db.trips.map(r => `
-    <div class="rc">
-      <div class="rh">
-        <div class="rdate">${r.date}</div>
-        <div class="rtotal">${r.client||''} ${r.purpose?'· '+r.purpose:''}</div>
-      </div>
-      <div class="rb">
-        ${r.route?`<div class="rl">📍 ${r.route}</div>`:''}
-        ${r.km?`<div class="rm">公里数：${r.km} &nbsp;→&nbsp; 油费在Excel中自动计算</div>`:''}
-        <div class="rm">${[
-          r.traffic&&`交通 ${r.traffic}`, r.subsidy&&`补贴 ${r.subsidy}`,
-          r.hotel&&`住宿 ${r.hotel}`, r.entertain&&`招待 ${r.entertain}`,
-          r.parts&&`配件 ${r.parts}`, r.toll&&`路桥 ${r.toll}`, r.other&&`其他 ${r.other}`
-        ].filter(Boolean).join(' · ')||'无其他费用'}</div>
-        ${r.dept?`<div class="rm">所属：${r.dept}</div>`:''}
-        ${r.note?`<div class="rm">备注：${r.note}</div>`:''}
-      </div>
-      <div class="ract">
-        <button class="bedit" onclick="openEditTrip(${r.id})">✏️ 编辑</button>
-        <button class="bdel" onclick="delTrip(${r.id})">删除</button>
-      </div>
-    </div>`).join('');
+  list.innerHTML = renderGrouped('trip', db.trips, tripCard);
 }
 
 function openEditTrip(id) {
@@ -692,24 +809,7 @@ function renderEntertains() {
   const list=$('ent-list'), empty=$('ent-empty');
   if (!db.entertains.length) { list.innerHTML=''; empty.style.display='block'; return; }
   empty.style.display='none';
-  list.innerHTML = db.entertains.map(r=>`
-    <div class="rc">
-      <div class="rh">
-        <div class="rdate o">${r.date}</div>
-        <div class="rtotal">${r.client||''}</div>
-      </div>
-      <div class="rb">
-        ${r.items?`<div class="rl">💰 ${r.items}</div>`:''}
-        ${r.ticket?`<div class="rm">票据：${r.ticket}</div>`:''}
-        ${r.loc?`<div class="rm">📍 ${r.loc}</div>`:''}
-        ${r.people?`<div class="rm">👥 ${r.people}</div>`:''}
-        ${r.reason?`<div class="rm">📝 ${r.reason}</div>`:''}
-      </div>
-      <div class="ract">
-        <button class="bedit" onclick="openEditEnt(${r.id})">✏️ 编辑</button>
-        <button class="bdel" onclick="delEnt(${r.id})">删除</button>
-      </div>
-    </div>`).join('');
+  list.innerHTML = renderGrouped('ent', db.entertains, entCard);
 }
 
 function openEditEnt(id) {
@@ -757,22 +857,7 @@ function renderParts() {
   const list=$('part-list'), empty=$('part-empty');
   if(!db.parts.length){list.innerHTML='';empty.style.display='block';return;}
   empty.style.display='none';
-  list.innerHTML=db.parts.map(r=>`
-    <div class="rc">
-      <div class="rh">
-        <div class="rdate v">${r.date}</div>
-        <div class="rtotal">${r.client||''}</div>
-      </div>
-      <div class="rb">
-        ${r.name?`<div class="rl">🔩 ${r.name}</div>`:''}
-        ${r.amount?`<div class="rm">金额：${r.amount}</div>`:''}
-        ${r.ticket?`<div class="rm">票据：${r.ticket}</div>`:''}
-      </div>
-      <div class="ract">
-        <button class="bedit" onclick="openEditPart(${r.id})">✏️ 编辑</button>
-        <button class="bdel" onclick="delPart(${r.id})">删除</button>
-      </div>
-    </div>`).join('');
+  list.innerHTML=renderGrouped('part', db.parts, partCard);
 }
 
 function openEditPart(id) {
